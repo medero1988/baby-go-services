@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { EnvService } from './config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const env = app.get(EnvService);
 
   // Prefijo global para todas las rutas
   app.setGlobalPrefix('api');
@@ -26,9 +28,8 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  await app.listen(env.port);
+  console.log(`🚀 Application is running on: http://localhost:${env.port}/api`);
 }
 
 bootstrap().catch((error) => {
