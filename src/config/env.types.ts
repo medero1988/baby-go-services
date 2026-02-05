@@ -16,7 +16,19 @@ export interface DatabaseConfig {
   mongoPassword: string;
 }
 
+export interface AuthConfig {
+  jwtSecret: string;
+  jwtExpiresIn: string;
+  googleClientId: string;
+  facebookAppId: string;
+  /** En local: si true, permite bypass de auth (usuario dev) cuando no hay token */
+  devBypassAuth: boolean;
+  devUserEmail: string;
+  devUserName: string;
+}
+
 export interface EnvConfig {
   app: AppConfig;
   database: DatabaseConfig;
+  auth: AuthConfig;
 }

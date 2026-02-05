@@ -21,6 +21,7 @@ export interface StoreFunnelMeta {
 /** Respuesta de creación de perfil de tienda */
 export interface StoreProfileResponse {
   id: string;
+  userId: string;
   name: string;
   country: string;
   address: string;

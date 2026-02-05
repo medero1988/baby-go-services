@@ -22,5 +22,17 @@ export default (): EnvConfig => {
       mongoUsername: process.env.MONGODB_USERNAME ?? '',
       mongoPassword: process.env.MONGODB_PASSWORD ?? '',
     },
+    auth: {
+      jwtSecret: process.env.JWT_SECRET ?? 'change-me-in-production',
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+      googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      facebookAppId: process.env.FACEBOOK_APP_ID ?? '',
+      devBypassAuth:
+        process.env.NODE_ENV !== 'production' &&
+        (process.env.ENABLE_DEV_AUTH_BYPASS === 'true' ||
+          process.env.ENABLE_DEV_AUTH_BYPASS === '1'),
+      devUserEmail: process.env.DEV_USER_EMAIL ?? 'dev@local.dev',
+      devUserName: process.env.DEV_USER_NAME ?? 'Dev Local',
+    },
   };
 };

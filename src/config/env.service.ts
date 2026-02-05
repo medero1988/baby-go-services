@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppConfig, DatabaseConfig, EnvConfig } from './env.types';
+import { AppConfig, AuthConfig, DatabaseConfig, EnvConfig } from './env.types';
 
 /**
  * Servicio para acceder a las variables de entorno de forma rápida y tipada.
@@ -15,6 +15,7 @@ export class EnvService {
     return {
       app: this.app,
       database: this.database,
+      auth: this.auth,
     };
   }
 
@@ -26,6 +27,11 @@ export class EnvService {
   /** Database: mongoUri, mongoHost, mongoPort, mongoDatabase, etc. */
   get database(): DatabaseConfig {
     return this.config.getOrThrow<DatabaseConfig>('database');
+  }
+
+  /** Auth: JWT, Google, Facebook */
+  get auth(): AuthConfig {
+    return this.config.getOrThrow<AuthConfig>('auth');
   }
 
   // ——— Acceso rápido (getters cortos) ———
@@ -56,5 +62,33 @@ export class EnvService {
 
   get isProduction(): boolean {
     return this.nodeEnv === 'production';
+  }
+
+  get jwtSecret(): string {
+    return this.auth.jwtSecret;
+  }
+
+  get jwtExpiresIn(): string {
+    return this.auth.jwtExpiresIn;
+  }
+
+  get googleClientId(): string {
+    return this.auth.googleClientId;
+  }
+
+  get facebookAppId(): string {
+    return this.auth.facebookAppId;
+  }
+
+  get devBypassAuth(): boolean {
+    return this.auth.devBypassAuth;
+  }
+
+  get devUserEmail(): string {
+    return this.auth.devUserEmail;
+  }
+
+  get devUserName(): string {
+    return this.auth.devUserName;
   }
 }

@@ -17,6 +17,7 @@ export class StoreService {
   ) {}
 
   async createProfile(
+    userId: string,
     dto: CreateStoreProfileDto,
   ): Promise<StoreProfileResponse> {
     const normalizedName = dto.name.trim().toLowerCase();
@@ -51,6 +52,7 @@ export class StoreService {
     };
 
     const store = await this.storeModel.create({
+      userId,
       name: dto.name.trim(),
       country: dto.country.trim(),
       address: dto.address.trim(),
@@ -61,6 +63,7 @@ export class StoreService {
     const doc = store.toObject();
     return {
       id: String(doc._id),
+      userId: String(doc.userId),
       name: doc.name,
       country: doc.country,
       address: doc.address,

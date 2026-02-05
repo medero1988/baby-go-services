@@ -1,11 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { StoreFunnelMeta } from './store.types';
 
 export type StoreDocument = Store & Document;
 
 @Schema({ collection: 'stores', timestamps: true })
 export class Store {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  userId: Types.ObjectId;
+
   @Prop({ required: true, trim: true })
   name: string;
 
@@ -50,5 +53,6 @@ export class Store {
 
 export const StoreSchema = SchemaFactory.createForClass(Store);
 
+StoreSchema.index({ userId: 1 });
 StoreSchema.index({ name: 1 }, { unique: true });
 StoreSchema.index({ cellPhone: 1 }, { unique: true });
