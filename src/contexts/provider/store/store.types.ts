@@ -15,7 +15,7 @@ export type StoreState = 'missing-info' | 'pending-review' | 'active';
 export interface StoreFunnelMeta {
   state: StoreState;
   lastSteep: FunnelLastSteep;
-  cellValidationSent: boolean;
+  cellValidated: boolean;
 }
 
 /** Respuesta de creación de perfil de tienda */
@@ -27,4 +27,6 @@ export interface StoreProfileResponse {
   address: string;
   cellPhone: string;
   meta: StoreFunnelMeta;
+  /** Solo en desarrollo: código enviado para verificación (para pruebas). */
+  devCode?: string;
 }

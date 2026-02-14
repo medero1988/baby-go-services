@@ -21,6 +21,12 @@ export class Store {
   @Prop({ required: true, trim: true })
   cellPhone: string;
 
+  @Prop({ trim: true })
+  cellVerificationCode?: string;
+
+  @Prop()
+  cellVerificationCodeExpiresAt?: Date;
+
   @Prop({
     type: {
       state: {
@@ -39,13 +45,13 @@ export class Store {
           'bank-account',
         ],
       },
-      cellValidationSent: Boolean,
+      cellValidated: Boolean,
     },
     required: true,
     default: (): StoreFunnelMeta => ({
       state: 'missing-info',
       lastSteep: 'profile',
-      cellValidationSent: false,
+      cellValidated: false,
     }),
   })
   meta: StoreFunnelMeta;

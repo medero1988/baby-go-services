@@ -1,0 +1,23 @@
+# MongoDB en local (sin auth, para desarrollo).
+# Uso: docker compose up -d
+# Conexión: mongodb://localhost:27017/baby-go
+services:
+  mongo:
+    image: mongo:7
+    container_name: baby-go-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: baby-go
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongo_data:

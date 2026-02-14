@@ -27,8 +27,15 @@ export interface AuthConfig {
   devUserName: string;
 }
 
+export interface TwilioConfig {
+  accountSid: string;
+  authToken: string;
+  messagingServiceSid: string;
+}
+
 export interface EnvConfig {
   app: AppConfig;
   database: DatabaseConfig;
   auth: AuthConfig;
+  twilio: TwilioConfig;
 }

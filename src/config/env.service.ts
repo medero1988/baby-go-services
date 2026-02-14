@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppConfig, AuthConfig, DatabaseConfig, EnvConfig } from './env.types';
+import {
+  AppConfig,
+  AuthConfig,
+  DatabaseConfig,
+  EnvConfig,
+  TwilioConfig,
+} from './env.types';
 
 /**
  * Servicio para acceder a las variables de entorno de forma rápida y tipada.
@@ -16,6 +22,7 @@ export class EnvService {
       app: this.app,
       database: this.database,
       auth: this.auth,
+      twilio: this.twilio,
     };
   }
 
@@ -32,6 +39,11 @@ export class EnvService {
   /** Auth: JWT, Google, Facebook */
   get auth(): AuthConfig {
     return this.config.getOrThrow<AuthConfig>('auth');
+  }
+
+  /** Twilio: SMS (verificación celular) */
+  get twilio(): TwilioConfig {
+    return this.config.getOrThrow<TwilioConfig>('twilio');
   }
 
   // ——— Acceso rápido (getters cortos) ———
@@ -90,5 +102,17 @@ export class EnvService {
 
   get devUserName(): string {
     return this.auth.devUserName;
+  }
+
+  get twilioAccountSid(): string {
+    return this.twilio.accountSid;
+  }
+
+  get twilioAuthToken(): string {
+    return this.twilio.authToken;
+  }
+
+  get twilioMessagingServiceSid(): string {
+    return this.twilio.messagingServiceSid;
   }
 }

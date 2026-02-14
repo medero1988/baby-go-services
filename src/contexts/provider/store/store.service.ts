@@ -1,6 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { EnvService } from '../../../config/env.service';
+import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { StoreDocument } from './store.schema';
 import { StoreFunnelMeta, StoreProfileResponse } from './store.types';
@@ -8,12 +14,19 @@ import { StoreFunnelMeta, StoreProfileResponse } from './store.types';
 export const STORE_ERRORS = {
   NAME_NOT_AVAILABLE: 'name_not_available',
   CELL_NOT_AVAILABLE: 'cell_not_available',
+  INVALID_CODE: 'invalid_code',
+  CODE_EXPIRED: 'code_expired',
 } as const;
+
+const CODE_EXPIRY_MINUTES = 10;
+const CODE_LENGTH = 6;
 
 @Injectable()
 export class StoreService {
   constructor(
     @InjectModel('Store') private readonly storeModel: Model<StoreDocument>,
+    private env: EnvService,
+    private twilioService: TwilioService,
   ) {}
 
   async createProfile(
@@ -48,7 +61,7 @@ export class StoreService {
     const meta: StoreFunnelMeta = {
       state: 'missing-info',
       lastSteep: 'profile',
-      cellValidationSent: false,
+      cellValidated: false,
     };
 
     const store = await this.storeModel.create({
@@ -61,7 +74,132 @@ export class StoreService {
     });
 
     const doc = store.toObject();
-    return {
+    const storeId = String(doc._id);
+
+    // Al crear la tienda se envía el código de verificación al celular.
+    const code = await this.setVerificationCodeForStore(
+      storeId,
+      userId,
+      normalizedCell,
+    );
+    const devCode = this.env.isProduction ? undefined : code;
+    return this.toStoreResponse(doc, devCode);
+  }
+
+  /** Envía código de verificación al celular (re-envío). En dev devuelve el código para pruebas. */
+  async sendCellVerificationCode(
+    storeId: string,
+    userId: string,
+  ): Promise<{ codeSent: boolean; devCode?: string }> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    const code = await this.setVerificationCodeForStore(
+      storeId,
+      userId,
+      store.cellPhone,
+    );
+    const result: { codeSent: boolean; devCode?: string } = { codeSent: true };
+    if (!this.env.isProduction) {
+      result.devCode = code;
+    }
+    return result;
+  }
+
+  /** Genera código, lo guarda en la tienda, envía SMS por Twilio si está configurado y devuelve el código. */
+  private async setVerificationCodeForStore(
+    storeId: string,
+    userId: string,
+    cellPhone: string,
+  ): Promise<string> {
+    const code = generateNumericCode(CODE_LENGTH);
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + CODE_EXPIRY_MINUTES);
+
+    await this.storeModel
+      .updateOne(
+        { _id: storeId, userId },
+        {
+          $set: {
+            cellVerificationCode: code,
+            cellVerificationCodeExpiresAt: expiresAt,
+          },
+        },
+      )
+      .exec();
+
+    await this.twilioService.sendSms(cellPhone, code);
+    return code;
+  }
+
+  /** Valida el código y marca cellValidated en true. */
+  async validateCellCode(
+    storeId: string,
+    userId: string,
+    code: string,
+  ): Promise<StoreProfileResponse> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    const normalizedCode = code.trim().toUpperCase();
+    const storedCode = store.cellVerificationCode?.trim().toUpperCase();
+    const expiresAt = store.cellVerificationCodeExpiresAt;
+
+    if (!storedCode) {
+      throw new BadRequestException({ error: STORE_ERRORS.INVALID_CODE });
+    }
+    if (expiresAt && new Date() > expiresAt) {
+      throw new BadRequestException({ error: STORE_ERRORS.CODE_EXPIRED });
+    }
+    if (storedCode !== normalizedCode) {
+      throw new BadRequestException({ error: STORE_ERRORS.INVALID_CODE });
+    }
+
+    const updated = await this.storeModel
+      .findByIdAndUpdate(
+        storeId,
+        {
+          $set: {
+            'meta.cellValidated': true,
+            'meta.lastSteep': 'cell-verification',
+          },
+          $unset: {
+            cellVerificationCode: '',
+            cellVerificationCodeExpiresAt: '',
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+    return this.toStoreResponse(updated);
+  }
+
+  private toStoreResponse(
+    doc: {
+      _id: unknown;
+      userId: unknown;
+      name: string;
+      country: string;
+      address: string;
+      cellPhone: string;
+      meta: StoreFunnelMeta;
+    },
+    devCode?: string,
+  ): StoreProfileResponse {
+    const res: StoreProfileResponse = {
       id: String(doc._id),
       userId: String(doc.userId),
       name: doc.name,
@@ -70,9 +208,22 @@ export class StoreService {
       cellPhone: doc.cellPhone,
       meta: doc.meta,
     };
+    if (devCode !== undefined) {
+      res.devCode = devCode;
+    }
+    return res;
   }
 }
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function generateNumericCode(length: number): string {
+  const digits = '0123456789';
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += digits[Math.floor(Math.random() * digits.length)];
+  }
+  return code;
 }

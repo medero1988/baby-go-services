@@ -34,5 +34,10 @@ export default (): EnvConfig => {
       devUserEmail: process.env.DEV_USER_EMAIL ?? 'dev@local.dev',
       devUserName: process.env.DEV_USER_NAME ?? 'Dev Local',
     },
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
+      authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
+      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID ?? '',
+    },
   };
 };

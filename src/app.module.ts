@@ -9,11 +9,13 @@ import { ConfigModule } from './config';
 import { EnvService } from './config/env.service';
 import { ClientModule } from './contexts/client/client.module';
 import { ProviderModule } from './contexts/provider/provider.module';
+import { TwilioModule } from './shared/twilio/twilio.module';
 
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
+    TwilioModule,
     MongooseModule.forRootAsync({
       useFactory: (env: EnvService) => ({ uri: env.mongoUri }),
       inject: [EnvService],
