@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import * as path from 'path';
+import { promises as fs } from 'fs';
 import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
@@ -136,6 +138,91 @@ export class StoreService {
     return code;
   }
 
+  /** Devuelve todas las tiendas. */
+  async findAll(): Promise<StoreProfileResponse[]> {
+    const stores = await this.storeModel.find().lean().exec();
+    return stores.map((doc) => this.toStoreResponse(doc as StoreDocument));
+  }
+
+  /** Sube y guarda el avatar de la store (multipart field: `avatar`). */
+  async uploadAvatar(
+    storeId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<StoreProfileResponse> {
+    if (!file) {
+      throw new BadRequestException({ error: 'avatar_missing' });
+    }
+
+    if (!file.buffer) {
+      throw new BadRequestException({ error: 'avatar_empty' });
+    }
+
+    if (!file.mimetype?.startsWith('image/')) {
+      throw new BadRequestException({ error: 'invalid_avatar_type' });
+    }
+
+    const ext = getAllowedImageExtension(file.mimetype);
+    const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
+    await fs.mkdir(uploadsDir, { recursive: true });
+
+    const filename = `${storeId}.${ext}`;
+    const fullPath = path.join(uploadsDir, filename);
+
+    // En este flujo esperamos `memoryStorage()` en el FileInterceptor.
+    await fs.writeFile(fullPath, file.buffer);
+
+    const avatarUrl = `/api/uploads/avatars/${filename}`;
+
+    const updated = await this.storeModel
+      .findOneAndUpdate(
+        { _id: storeId, userId },
+        {
+          $set: {
+            avatar: avatarUrl,
+            'meta.lastSteep': 'avatar',
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
+  async remove(storeId: string, userId: string): Promise<{ success: boolean }> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    // Si existe un avatar local, elimínalo al borrar la store.
+    if (store.avatar) {
+      const filename = path.basename(store.avatar);
+      const avatarPath = path.join(
+        process.cwd(),
+        'uploads',
+        'avatars',
+        filename,
+      );
+      await fs.unlink(avatarPath).catch((err: unknown) => {
+        const e = err as { code?: string };
+        if (e.code === 'ENOENT') return;
+        throw err;
+      });
+    }
+
+    await this.storeModel.deleteOne({ _id: storeId, userId }).exec();
+    return { success: true };
+  }
+
   /** Valida el código y marca cellValidated en true. */
   async validateCellCode(
     storeId: string,
@@ -195,6 +282,7 @@ export class StoreService {
       country: string;
       address: string;
       cellPhone: string;
+      avatar?: string;
       meta: StoreFunnelMeta;
     },
     devCode?: string,
@@ -203,6 +291,7 @@ export class StoreService {
       id: String(doc._id),
       userId: String(doc.userId),
       name: doc.name,
+      avatar: doc.avatar,
       country: doc.country,
       address: doc.address,
       cellPhone: doc.cellPhone,
@@ -217,6 +306,22 @@ export class StoreService {
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getAllowedImageExtension(mimetype: string): string {
+  const mimeToExt: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+  };
+
+  const ext = mimeToExt[mimetype];
+  if (!ext) {
+    throw new BadRequestException({ error: 'invalid_avatar_type' });
+  }
+  return ext;
 }
 
 function generateNumericCode(length: number): string {

@@ -22,6 +22,9 @@ export class Store {
   cellPhone: string;
 
   @Prop({ trim: true })
+  avatar?: string;
+
+  @Prop({ trim: true })
   cellVerificationCode?: string;
 
   @Prop()

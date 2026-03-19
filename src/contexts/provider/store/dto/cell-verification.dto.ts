@@ -9,10 +9,6 @@ export class SendCellCodeDto {
 export class CellVerificationDto {
   @IsString()
   @IsNotEmpty()
-  id: string;
-
-  @IsString()
-  @IsNotEmpty()
   @MinLength(4)
   @MaxLength(8)
   code: string;

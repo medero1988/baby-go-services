@@ -23,6 +23,7 @@ export interface StoreProfileResponse {
   id: string;
   userId: string;
   name: string;
+  avatar?: string;
   country: string;
   address: string;
   cellPhone: string;
