@@ -10,15 +10,33 @@ import { promises as fs } from 'fs';
 import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { StoreDocument } from './store.schema';
-import { StoreFunnelMeta, StoreProfileResponse } from './store.types';
+import {
+  AttentionSchedule,
+  DeliveryDayKey,
+  DeliveryDaysMap,
+  StoreFunnelMeta,
+  StoreProfileResponse,
+} from './store.types';
 
 export const STORE_ERRORS = {
   NAME_NOT_AVAILABLE: 'name_not_available',
   CELL_NOT_AVAILABLE: 'cell_not_available',
   INVALID_CODE: 'invalid_code',
   CODE_EXPIRED: 'code_expired',
+  INVALID_DELIVERY_SCHEDULE: 'invalid_delivery_schedule',
 } as const;
+
+const DELIVERY_DAY_KEYS: DeliveryDayKey[] = [
+  'mon',
+  'tue',
+  'wed',
+  'thu',
+  'fri',
+  'sat',
+  'sun',
+];
 
 const CODE_EXPIRY_MINUTES = 10;
 const CODE_LENGTH = 6;
@@ -274,6 +292,116 @@ export class StoreService {
     return this.toStoreResponse(updated);
   }
 
+  /** Configura horario de delivery (paso `delivery`). */
+  async updateDelivery(
+    storeId: string,
+    userId: string,
+    dto: UpdateDeliveryDto,
+  ): Promise<StoreProfileResponse> {
+    const schedule = this.buildAttentionScheduleFromDto(dto);
+
+    const updated = await this.storeModel
+      .findOneAndUpdate(
+        { _id: storeId, userId },
+        {
+          $set: {
+            delivery: schedule,
+            'meta.lastSteep': 'delivery',
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
+  private buildAttentionScheduleFromDto(
+    dto: UpdateDeliveryDto,
+  ): AttentionSchedule {
+    const available24h = dto.available24h === true;
+
+    if (available24h) {
+      return {
+        available: dto.available,
+        available24h: true,
+        timeRanges: [],
+        days: {},
+      };
+    }
+
+    const timeRanges = Array.isArray(dto.timeRanges) ? dto.timeRanges : [];
+    const days = this.normalizeDeliveryDays(dto.days);
+
+    if (dto.available && timeRanges.length === 0) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
+        message:
+          'When delivery is available and not 24/7, timeRanges must not be empty',
+      });
+    }
+
+    this.validateDeliveryDayIndices(timeRanges.length, days);
+
+    return {
+      available: dto.available,
+      timeRanges,
+      days: days && Object.keys(days).length > 0 ? days : undefined,
+    };
+  }
+
+  private normalizeDeliveryDays(
+    raw: UpdateDeliveryDto['days'],
+  ): DeliveryDaysMap | undefined {
+    if (!raw) return undefined;
+    const out: DeliveryDaysMap = {};
+    for (const key of DELIVERY_DAY_KEYS) {
+      const arr = raw[key];
+      if (Array.isArray(arr) && arr.length > 0) {
+        out[key] = [...arr];
+      }
+    }
+    return Object.keys(out).length ? out : undefined;
+  }
+
+  private validateDeliveryDayIndices(
+    timeRangeCount: number,
+    days: DeliveryDaysMap | undefined,
+  ): void {
+    if (!days || timeRangeCount === 0) return;
+
+    for (const key of DELIVERY_DAY_KEYS) {
+      const indices = days[key];
+      if (!indices?.length) continue;
+
+      if (indices.length > 3) {
+        throw new BadRequestException({
+          error: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
+          message: `Maximum 3 time intervals per day (${key})`,
+        });
+      }
+
+      for (const idx of indices) {
+        if (
+          typeof idx !== 'number' ||
+          !Number.isInteger(idx) ||
+          idx < 0 ||
+          idx >= timeRangeCount
+        ) {
+          throw new BadRequestException({
+            error: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
+            message: `Invalid timeRanges index for ${key}: ${String(idx)}`,
+          });
+        }
+      }
+    }
+  }
+
   private toStoreResponse(
     doc: {
       _id: unknown;
@@ -283,6 +411,7 @@ export class StoreService {
       address: string;
       cellPhone: string;
       avatar?: string;
+      delivery?: AttentionSchedule;
       meta: StoreFunnelMeta;
     },
     devCode?: string,
@@ -295,6 +424,7 @@ export class StoreService {
       country: doc.country,
       address: doc.address,
       cellPhone: doc.cellPhone,
+      delivery: doc.delivery,
       meta: doc.meta,
     };
     if (devCode !== undefined) {

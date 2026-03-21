@@ -20,6 +20,7 @@ import {
   SendCellCodeDto,
 } from './dto/cell-verification.dto';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { StoreService } from './store.service';
 
 @Controller(`${ROUTES.PROVIDER}/store`)
@@ -83,6 +84,20 @@ export class StoreController {
     }
 
     return this.storeService.uploadAvatar(storeId, userId, file);
+  }
+
+  @Post('/:id/delivery')
+  async updateDelivery(
+    @Param('id') id: string,
+    @Body() body: UpdateDeliveryDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.storeService.updateDelivery(storeId, userId, body);
   }
 
   @Delete('/:id')

@@ -18,6 +18,30 @@ export interface StoreFunnelMeta {
   cellValidated: boolean;
 }
 
+/** Días de la semana → índices en `timeRanges`. */
+export type DeliveryDayKey =
+  | 'mon'
+  | 'tue'
+  | 'wed'
+  | 'thu'
+  | 'fri'
+  | 'sat'
+  | 'sun';
+
+export type DeliveryDaysMap = Partial<Record<DeliveryDayKey, number[]>>;
+
+/**
+ * Horario de atención para delivery (refinado en funnel).
+ * `days.*` son índices hacia el array `timeRanges`.
+ */
+export interface AttentionSchedule {
+  available: boolean;
+  /** Si true, el horario es 24/7 y no aplica configuración por días. */
+  available24h?: boolean;
+  timeRanges: string[];
+  days?: DeliveryDaysMap;
+}
+
 /** Respuesta de creación de perfil de tienda */
 export interface StoreProfileResponse {
   id: string;
@@ -27,6 +51,8 @@ export interface StoreProfileResponse {
   country: string;
   address: string;
   cellPhone: string;
+  /** Horario de delivery (si ya fue configurado). */
+  delivery?: AttentionSchedule;
   meta: StoreFunnelMeta;
   /** Solo en desarrollo: código enviado para verificación (para pruebas). */
   devCode?: string;

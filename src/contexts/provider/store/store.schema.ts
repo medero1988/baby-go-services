@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { StoreFunnelMeta } from './store.types';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
+import { AttentionSchedule, StoreFunnelMeta } from './store.types';
 
 export type StoreDocument = Store & Document;
 
@@ -23,6 +23,10 @@ export class Store {
 
   @Prop({ trim: true })
   avatar?: string;
+
+  /** Horario de delivery (`AttentionSchedule`); Mixed para flexibilidad de `days`. */
+  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
+  delivery?: AttentionSchedule;
 
   @Prop({ trim: true })
   cellVerificationCode?: string;
