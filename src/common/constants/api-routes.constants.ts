@@ -6,7 +6,7 @@ export const API_VERSION = 'v1';
 
 export const ROUTES = {
   /** Clientes: /api/c/v1/... */
-  CLIENT: `c/${API_VERSION}`,
+  CLIENT: `${API_VERSION}`,
   /** Proveedores: /api/p/v1/... */
-  PROVIDER: `p/${API_VERSION}`,
+  PROVIDER: `${API_VERSION}`,
 } as const;

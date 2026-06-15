@@ -18,6 +18,13 @@ export interface StoreFunnelMeta {
   cellValidated: boolean;
 }
 
+/** Dirección de la tienda (Google Places). */
+export interface StoreAddress {
+  addressLine1: string;
+  addressLine2?: string;
+  placeId: string;
+}
+
 /** Días de la semana → índices en `timeRanges`. */
 export type DeliveryDayKey =
   | 'mon'
@@ -49,7 +56,7 @@ export interface StoreProfileResponse {
   name: string;
   avatar?: string;
   country: string;
-  address: string;
+  address: StoreAddress;
   cellPhone: string;
   /** Horario de delivery (si ya fue configurado). */
   delivery?: AttentionSchedule;

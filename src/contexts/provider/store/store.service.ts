@@ -11,14 +11,20 @@ import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
+import {
+  UpdateStoreAddressDto,
+  UpdateStoreProfileDto,
+} from './dto/update-store-profile.dto';
 import { StoreDocument } from './store.schema';
 import {
   AttentionSchedule,
   DeliveryDayKey,
   DeliveryDaysMap,
+  StoreAddress,
   StoreFunnelMeta,
   StoreProfileResponse,
 } from './store.types';
+import { StoreAddressDto } from './dto/store-address.dto';
 
 export const STORE_ERRORS = {
   NAME_NOT_AVAILABLE: 'name_not_available',
@@ -26,6 +32,7 @@ export const STORE_ERRORS = {
   INVALID_CODE: 'invalid_code',
   CODE_EXPIRED: 'code_expired',
   INVALID_DELIVERY_SCHEDULE: 'invalid_delivery_schedule',
+  NO_FIELDS_TO_UPDATE: 'no_fields_to_update',
 } as const;
 
 const DELIVERY_DAY_KEYS: DeliveryDayKey[] = [
@@ -53,30 +60,10 @@ export class StoreService {
     userId: string,
     dto: CreateStoreProfileDto,
   ): Promise<StoreProfileResponse> {
-    const normalizedName = dto.name.trim().toLowerCase();
     const normalizedCell = dto.cellPhone.replace(/\s/g, '').trim();
 
-    const existingByName = await this.storeModel
-      .findOne({ name: new RegExp(`^${escapeRegex(normalizedName)}$`, 'i') })
-      .lean()
-      .exec();
-    if (existingByName) {
-      throw new BadRequestException({
-        error: STORE_ERRORS.NAME_NOT_AVAILABLE,
-      });
-    }
-
-    const existingByCell = await this.storeModel
-      .findOne({
-        cellPhone: new RegExp(`^${escapeRegex(normalizedCell)}$`),
-      })
-      .lean()
-      .exec();
-    if (existingByCell) {
-      throw new BadRequestException({
-        error: STORE_ERRORS.CELL_NOT_AVAILABLE,
-      });
-    }
+    await this.assertNameAvailable(dto.name.trim());
+    await this.assertCellAvailable(normalizedCell);
 
     const meta: StoreFunnelMeta = {
       state: 'missing-info',
@@ -88,7 +75,7 @@ export class StoreService {
       userId,
       name: dto.name.trim(),
       country: dto.country.trim(),
-      address: dto.address.trim(),
+      address: normalizeStoreAddress(dto.address),
       cellPhone: normalizedCell,
       meta,
     });
@@ -104,6 +91,105 @@ export class StoreService {
     );
     const devCode = this.env.isProduction ? undefined : code;
     return this.toStoreResponse(doc, devCode);
+  }
+
+  /** Actualiza parcialmente el perfil de la store. */
+  async updateProfile(
+    storeId: string,
+    userId: string,
+    dto: UpdateStoreProfileDto,
+  ): Promise<StoreProfileResponse> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
+    const $set: Record<string, unknown> = {};
+    let cellChanged = false;
+
+    if (dto.name !== undefined) {
+      const trimmedName = dto.name.trim();
+      await this.assertNameAvailable(trimmedName, storeId);
+      $set.name = trimmedName;
+    }
+
+    if (dto.country !== undefined) {
+      $set.country = dto.country.trim();
+    }
+
+    if (dto.address !== undefined) {
+      $set.address = mergeStoreAddress(store.address, dto.address);
+    }
+
+    if (dto.cellPhone !== undefined) {
+      const normalizedCell = dto.cellPhone.replace(/\s/g, '').trim();
+      await this.assertCellAvailable(normalizedCell, storeId);
+      if (normalizedCell !== store.cellPhone) {
+        cellChanged = true;
+      }
+      $set.cellPhone = normalizedCell;
+    }
+
+    if (Object.keys($set).length === 0) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.NO_FIELDS_TO_UPDATE,
+      });
+    }
+
+    $set['meta.lastSteep'] = 'profile';
+    if (cellChanged) {
+      $set['meta.cellValidated'] = false;
+    }
+
+    const updated = await this.storeModel
+      .findOneAndUpdate({ _id: storeId, userId }, { $set }, { new: true })
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
+  private async assertNameAvailable(
+    name: string,
+    excludeStoreId?: string,
+  ): Promise<void> {
+    const normalizedName = name.toLowerCase();
+    const query: Record<string, unknown> = {
+      name: new RegExp(`^${escapeRegex(normalizedName)}$`, 'i'),
+    };
+    if (excludeStoreId) {
+      query._id = { $ne: excludeStoreId };
+    }
+    const existing = await this.storeModel.findOne(query).lean().exec();
+    if (existing) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.NAME_NOT_AVAILABLE,
+      });
+    }
+  }
+
+  private async assertCellAvailable(
+    cellPhone: string,
+    excludeStoreId?: string,
+  ): Promise<void> {
+    const query: Record<string, unknown> = {
+      cellPhone: new RegExp(`^${escapeRegex(cellPhone)}$`),
+    };
+    if (excludeStoreId) {
+      query._id = { $ne: excludeStoreId };
+    }
+    const existing = await this.storeModel.findOne(query).lean().exec();
+    if (existing) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.CELL_NOT_AVAILABLE,
+      });
+    }
   }
 
   /** Envía código de verificación al celular (re-envío). En dev devuelve el código para pruebas. */
@@ -160,6 +246,21 @@ export class StoreService {
   async findAll(): Promise<StoreProfileResponse[]> {
     const stores = await this.storeModel.find().lean().exec();
     return stores.map((doc) => this.toStoreResponse(doc as StoreDocument));
+  }
+
+  /** Devuelve el perfil de una tienda por id (solo si pertenece al usuario). */
+  async findOneById(
+    storeId: string,
+    userId: string,
+  ): Promise<StoreProfileResponse> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .lean()
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+    return this.toStoreResponse(store as StoreDocument);
   }
 
   /** Sube y guarda el avatar de la store (multipart field: `avatar`). */
@@ -408,7 +509,7 @@ export class StoreService {
       userId: unknown;
       name: string;
       country: string;
-      address: string;
+      address: StoreAddress;
       cellPhone: string;
       avatar?: string;
       delivery?: AttentionSchedule;
@@ -432,6 +533,39 @@ export class StoreService {
     }
     return res;
   }
+}
+
+function normalizeStoreAddress(dto: StoreAddressDto): StoreAddress {
+  const address: StoreAddress = {
+    addressLine1: dto.addressLine1.trim(),
+    placeId: dto.placeId.trim(),
+  };
+  const line2 = dto.addressLine2?.trim();
+  if (line2) {
+    address.addressLine2 = line2;
+  }
+  return address;
+}
+
+function mergeStoreAddress(
+  current: StoreAddress,
+  patch: UpdateStoreAddressDto,
+): StoreAddress {
+  const merged: StoreAddress = {
+    addressLine1: patch.addressLine1?.trim() ?? current.addressLine1,
+    placeId: patch.placeId?.trim() ?? current.placeId,
+  };
+
+  if (patch.addressLine2 !== undefined) {
+    const line2 = patch.addressLine2.trim();
+    if (line2) {
+      merged.addressLine2 = line2;
+    }
+  } else if (current.addressLine2) {
+    merged.addressLine2 = current.addressLine2;
+  }
+
+  return merged;
 }
 
 function escapeRegex(s: string): string {

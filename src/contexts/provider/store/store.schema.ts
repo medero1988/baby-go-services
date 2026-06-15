@@ -1,6 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema, Types } from 'mongoose';
-import { AttentionSchedule, StoreFunnelMeta } from './store.types';
+import {
+  AttentionSchedule,
+  StoreAddress,
+  StoreFunnelMeta,
+} from './store.types';
 
 export type StoreDocument = Store & Document;
 
@@ -15,8 +19,15 @@ export class Store {
   @Prop({ required: true, trim: true })
   country: string;
 
-  @Prop({ required: true, trim: true })
-  address: string;
+  @Prop({
+    type: {
+      addressLine1: { type: String, required: true, trim: true },
+      addressLine2: { type: String, required: false, trim: true },
+      placeId: { type: String, required: true, trim: true },
+    },
+    required: true,
+  })
+  address: StoreAddress;
 
   @Prop({ required: true, trim: true })
   cellPhone: string;

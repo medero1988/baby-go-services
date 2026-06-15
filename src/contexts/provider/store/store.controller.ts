@@ -4,6 +4,7 @@ import {
   Get,
   BadRequestException,
   Post,
+  Patch,
   Query,
   Param,
   Delete,
@@ -21,6 +22,7 @@ import {
 } from './dto/cell-verification.dto';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
+import { UpdateStoreProfileDto } from './dto/update-store-profile.dto';
 import { StoreService } from './store.service';
 
 @Controller(`${ROUTES.PROVIDER}/store`)
@@ -30,6 +32,19 @@ export class StoreController {
   @Get()
   getAllStores() {
     return this.storeService.findAll();
+  }
+
+  @Get('/:id/profile')
+  getStoreProfile(
+    @Param('id') id: string,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.storeService.findOneById(storeId, userId);
   }
 
   @Post('profile')
@@ -44,6 +59,20 @@ export class StoreController {
       userId,
       body as CreateStoreProfileDto,
     );
+  }
+
+  @Patch('/:id/profile')
+  async updateStoreProfile(
+    @Param('id') id: string,
+    @Body() body: UpdateStoreProfileDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.storeService.updateProfile(storeId, userId, body);
   }
 
   @Post('/:id/cell-verification')

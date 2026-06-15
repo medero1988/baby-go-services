@@ -1,0 +1,229 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Baby Go — Provider Store",
+    "description": "API store proveedor (base: /api/p/v1/store).\n\nVariables de colección:\n- `baseUrl`: http://localhost:3000/api\n- `storeId`: id MongoDB de la store (tras crear perfil)\n- `token`: JWT (opcional si usás ENABLE_DEV_AUTH_BYPASS en local)\n\nAuth: Bearer {{token}}. En dev sin token, el backend puede usar usuario dev.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "storeId",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Store",
+      "item": [
+        {
+          "name": "1. Listar stores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store"]
+            },
+            "description": "GET todas las stores."
+          },
+          "response": []
+        },
+        {
+          "name": "1b. Obtener perfil por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "profile"]
+            },
+            "description": "GET perfil de una store por id (debe pertenecer al usuario autenticado)."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Crear perfil (store)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Baby Confy\",\n  \"country\": \"NL\",\n  \"address\": {\n    \"addressLine1\": \"Seevank 144, 1161 AR Zwanenburg, Netherlands\",\n    \"addressLine2\": \"alguna indicacion extra\",\n    \"placeId\": \"ChIJxxxxxxxxxxxxxxxxxxxx\"\n  },\n  \"cellPhone\": \"+315615628854\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "profile"]
+            },
+            "description": "Respuesta incluye `id` → copiar a variable `storeId`."
+          },
+          "response": []
+        },
+        {
+          "name": "2b. Actualizar perfil (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Baby Confy Updated\",\n  \"address\": {\n    \"addressLine2\": \"nueva indicacion extra\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "profile"]
+            },
+            "description": "Actualización parcial. Todos los campos son opcionales: name, country, address, cellPhone."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Reenviar código SMS",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/cell-verification/resend",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "cell-verification", "resend"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Validar código celular",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/cell-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "cell-verification"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Subir avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": [],
+                  "description": "Seleccioná una imagen (jpg/png/webp/gif, máx 5MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/avatar",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "avatar"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6a. Delivery — horario por días",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"available\": true,\n  \"timeRanges\": [\n    \"7:30-9:30\",\n    \"12:30-14:00\",\n    \"17:30-19:00\",\n    \"10:00-15:00\"\n  ],\n  \"days\": {\n    \"mon\": [0, 1, 2],\n    \"tue\": [0, 1],\n    \"sat\": [3]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/delivery",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "delivery"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6b. Delivery — 24/7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"available\": true,\n  \"available24h\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/delivery",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "delivery"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7. Eliminar store",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

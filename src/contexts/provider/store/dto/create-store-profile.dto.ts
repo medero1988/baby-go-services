@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, MaxLength, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
+import { StoreAddressDto } from './store-address.dto';
 
 export class CreateStoreProfileDto {
   @IsString()
@@ -11,10 +19,9 @@ export class CreateStoreProfileDto {
   @MaxLength(10)
   country: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(500)
-  address: string;
+  @ValidateNested()
+  @Type(() => StoreAddressDto)
+  address: StoreAddressDto;
 
   @IsString()
   @IsNotEmpty()
