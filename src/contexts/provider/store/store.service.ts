@@ -11,6 +11,7 @@ import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
+import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
 import {
   UpdateStoreAddressDto,
   UpdateStoreProfileDto,
@@ -32,6 +33,7 @@ export const STORE_ERRORS = {
   INVALID_CODE: 'invalid_code',
   CODE_EXPIRED: 'code_expired',
   INVALID_DELIVERY_SCHEDULE: 'invalid_delivery_schedule',
+  DELIVERY_NOT_CONFIGURED: 'delivery_not_configured',
   NO_FIELDS_TO_UPDATE: 'no_fields_to_update',
 } as const;
 
@@ -399,15 +401,71 @@ export class StoreService {
     userId: string,
     dto: UpdateDeliveryDto,
   ): Promise<StoreProfileResponse> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .lean()
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+
     const schedule = this.buildAttentionScheduleFromDto(dto);
+    const delivery = preserveDeliveryPricing(schedule, store.delivery);
 
     const updated = await this.storeModel
       .findOneAndUpdate(
         { _id: storeId, userId },
         {
           $set: {
-            delivery: schedule,
+            delivery,
             'meta.lastSteep': 'delivery',
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
+  /** Configura tarifas de delivery (paso `delivery-pricing`). */
+  async updateDeliveryPricing(
+    storeId: string,
+    userId: string,
+    dto: UpdateDeliveryPricingDto,
+  ): Promise<StoreProfileResponse> {
+    const store = await this.storeModel
+      .findOne({ _id: storeId, userId })
+      .lean()
+      .exec();
+    if (!store) {
+      throw new NotFoundException('Store not found');
+    }
+    if (!store.delivery) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.DELIVERY_NOT_CONFIGURED,
+      });
+    }
+
+    const delivery: AttentionSchedule = {
+      ...store.delivery,
+      basePrice: dto.basePrice,
+      pricePerKm: dto.priceKm,
+      maxDeliveryDistance: dto.maxDeliveryDistance,
+    };
+
+    const updated = await this.storeModel
+      .findOneAndUpdate(
+        { _id: storeId, userId },
+        {
+          $set: {
+            delivery,
+            'meta.lastSteep': 'delivery-pricing',
           },
         },
         { new: true },
@@ -533,6 +591,24 @@ export class StoreService {
     }
     return res;
   }
+}
+
+function preserveDeliveryPricing(
+  schedule: AttentionSchedule,
+  existing?: AttentionSchedule,
+): AttentionSchedule {
+  if (!existing) return schedule;
+  const pricing: Partial<AttentionSchedule> = {};
+  if (existing.basePrice !== undefined) {
+    pricing.basePrice = existing.basePrice;
+  }
+  if (existing.pricePerKm !== undefined) {
+    pricing.pricePerKm = existing.pricePerKm;
+  }
+  if (existing.maxDeliveryDistance !== undefined) {
+    pricing.maxDeliveryDistance = existing.maxDeliveryDistance;
+  }
+  return { ...schedule, ...pricing };
 }
 
 function normalizeStoreAddress(dto: StoreAddressDto): StoreAddress {

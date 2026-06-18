@@ -47,6 +47,12 @@ export interface AttentionSchedule {
   available24h?: boolean;
   timeRanges: string[];
   days?: DeliveryDaysMap;
+  /** Precio base mínimo en centavos. */
+  basePrice?: number;
+  /** Tarifa por km en centavos. */
+  pricePerKm?: number;
+  /** Distancia máxima de delivery en km. */
+  maxDeliveryDistance?: number;
 }
 
 /** Respuesta de creación de perfil de tienda */

@@ -211,6 +211,29 @@
           "response": []
         },
         {
+          "name": "6c. Delivery pricing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"basePrice\": 100,\n  \"priceKm\": 30,\n  \"maxDeliveryDistance\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/delivery-pricing",
+              "host": ["{{baseUrl}}"],
+              "path": ["p", "v1", "store", "{{storeId}}", "delivery-pricing"]
+            },
+            "description": "Precios en centavos. Requiere haber configurado delivery (6a/6b) antes."
+          },
+          "response": []
+        },
+        {
           "name": "7. Eliminar store",
           "request": {
             "method": "DELETE",
