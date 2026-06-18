@@ -21,6 +21,7 @@ import {
   SendCellCodeDto,
 } from './dto/cell-verification.dto';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
 import { UpdateStoreProfileDto } from './dto/update-store-profile.dto';
@@ -142,6 +143,20 @@ export class StoreController {
       throw new BadRequestException({ error: 'invalid_store_id' });
     }
     return this.storeService.updateDeliveryPricing(storeId, userId, body);
+  }
+
+  @Post('/:id/customer-pickup')
+  async updateCustomerPickup(
+    @Param('id') id: string,
+    @Body() body: UpdateCustomerPickupDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.storeService.updateCustomerPickup(storeId, userId, body);
   }
 
   @Delete('/:id')

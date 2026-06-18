@@ -37,16 +37,19 @@ export type DeliveryDayKey =
 
 export type DeliveryDaysMap = Partial<Record<DeliveryDayKey, number[]>>;
 
-/**
- * Horario de atención para delivery (refinado en funnel).
- * `days.*` son índices hacia el array `timeRanges`.
- */
-export interface AttentionSchedule {
+/** Horario de atención (delivery o customer pickup). */
+export interface ServiceSchedule {
   available: boolean;
-  /** Si true, el horario es 24/7 y no aplica configuración por días. */
   available24h?: boolean;
   timeRanges: string[];
   days?: DeliveryDaysMap;
+}
+
+/**
+ * Horario de delivery + tarifas opcionales.
+ * `days.*` son índices hacia el array `timeRanges`.
+ */
+export interface AttentionSchedule extends ServiceSchedule {
   /** Precio base mínimo en centavos. */
   basePrice?: number;
   /** Tarifa por km en centavos. */
@@ -54,6 +57,9 @@ export interface AttentionSchedule {
   /** Distancia máxima de delivery en km. */
   maxDeliveryDistance?: number;
 }
+
+/** Horario de retiro en tienda (customer pickup). */
+export type PickupSchedule = ServiceSchedule;
 
 /** Respuesta de creación de perfil de tienda */
 export interface StoreProfileResponse {
@@ -66,6 +72,8 @@ export interface StoreProfileResponse {
   cellPhone: string;
   /** Horario de delivery (si ya fue configurado). */
   delivery?: AttentionSchedule;
+  /** Horario de retiro en tienda (customer pickup). */
+  customerPickup?: PickupSchedule;
   meta: StoreFunnelMeta;
   /** Solo en desarrollo: código enviado para verificación (para pruebas). */
   devCode?: string;

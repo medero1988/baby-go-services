@@ -10,6 +10,7 @@ import { promises as fs } from 'fs';
 import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
 import {
@@ -21,6 +22,8 @@ import {
   AttentionSchedule,
   DeliveryDayKey,
   DeliveryDaysMap,
+  PickupSchedule,
+  ServiceSchedule,
   StoreAddress,
   StoreFunnelMeta,
   StoreProfileResponse,
@@ -33,6 +36,7 @@ export const STORE_ERRORS = {
   INVALID_CODE: 'invalid_code',
   CODE_EXPIRED: 'code_expired',
   INVALID_DELIVERY_SCHEDULE: 'invalid_delivery_schedule',
+  INVALID_PICKUP_SCHEDULE: 'invalid_pickup_schedule',
   DELIVERY_NOT_CONFIGURED: 'delivery_not_configured',
   NO_FIELDS_TO_UPDATE: 'no_fields_to_update',
 } as const;
@@ -49,6 +53,8 @@ const DELIVERY_DAY_KEYS: DeliveryDayKey[] = [
 
 const CODE_EXPIRY_MINUTES = 10;
 const CODE_LENGTH = 6;
+const MAX_DELIVERY_INTERVALS_PER_DAY = 3;
+const MAX_PICKUP_INTERVALS_PER_DAY = 2;
 
 @Injectable()
 export class StoreService {
@@ -480,9 +486,70 @@ export class StoreService {
     return this.toStoreResponse(updated as StoreDocument);
   }
 
+  /** Configura horario de customer pickup (paso `customer-pickup`). */
+  async updateCustomerPickup(
+    storeId: string,
+    userId: string,
+    dto: UpdateCustomerPickupDto,
+  ): Promise<StoreProfileResponse> {
+    const customerPickup = this.buildCustomerPickupFromDto(dto);
+
+    const updated = await this.storeModel
+      .findOneAndUpdate(
+        { _id: storeId, userId },
+        {
+          $set: {
+            customerPickup,
+            'meta.lastSteep': 'customer-pickup',
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
   private buildAttentionScheduleFromDto(
     dto: UpdateDeliveryDto,
   ): AttentionSchedule {
+    return this.buildServiceScheduleFromDto(dto, {
+      maxIntervalsPerDay: MAX_DELIVERY_INTERVALS_PER_DAY,
+      invalidError: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
+      emptyScheduleMessage:
+        'When delivery is available and not 24/7, timeRanges must not be empty',
+    });
+  }
+
+  private buildCustomerPickupFromDto(
+    dto: UpdateCustomerPickupDto,
+  ): PickupSchedule {
+    return this.buildServiceScheduleFromDto(dto, {
+      maxIntervalsPerDay: MAX_PICKUP_INTERVALS_PER_DAY,
+      invalidError: STORE_ERRORS.INVALID_PICKUP_SCHEDULE,
+      emptyScheduleMessage:
+        'When customer pickup is available and not 24/7, timeRanges must not be empty',
+    });
+  }
+
+  private buildServiceScheduleFromDto(
+    dto: {
+      available: boolean;
+      available24h?: boolean;
+      timeRanges?: string[];
+      days?: Partial<Record<DeliveryDayKey, number[]>>;
+    },
+    config: {
+      maxIntervalsPerDay: number;
+      invalidError: string;
+      emptyScheduleMessage: string;
+    },
+  ): ServiceSchedule {
     const available24h = dto.available24h === true;
 
     if (available24h) {
@@ -495,17 +562,16 @@ export class StoreService {
     }
 
     const timeRanges = Array.isArray(dto.timeRanges) ? dto.timeRanges : [];
-    const days = this.normalizeDeliveryDays(dto.days);
+    const days = this.normalizeScheduleDays(dto.days);
 
     if (dto.available && timeRanges.length === 0) {
       throw new BadRequestException({
-        error: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
-        message:
-          'When delivery is available and not 24/7, timeRanges must not be empty',
+        error: config.invalidError,
+        message: config.emptyScheduleMessage,
       });
     }
 
-    this.validateDeliveryDayIndices(timeRanges.length, days);
+    this.validateScheduleDayIndices(timeRanges.length, days, config);
 
     return {
       available: dto.available,
@@ -514,8 +580,8 @@ export class StoreService {
     };
   }
 
-  private normalizeDeliveryDays(
-    raw: UpdateDeliveryDto['days'],
+  private normalizeScheduleDays(
+    raw?: Partial<Record<DeliveryDayKey, number[]>>,
   ): DeliveryDaysMap | undefined {
     if (!raw) return undefined;
     const out: DeliveryDaysMap = {};
@@ -528,9 +594,10 @@ export class StoreService {
     return Object.keys(out).length ? out : undefined;
   }
 
-  private validateDeliveryDayIndices(
+  private validateScheduleDayIndices(
     timeRangeCount: number,
     days: DeliveryDaysMap | undefined,
+    config: { maxIntervalsPerDay: number; invalidError: string },
   ): void {
     if (!days || timeRangeCount === 0) return;
 
@@ -538,10 +605,10 @@ export class StoreService {
       const indices = days[key];
       if (!indices?.length) continue;
 
-      if (indices.length > 3) {
+      if (indices.length > config.maxIntervalsPerDay) {
         throw new BadRequestException({
-          error: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
-          message: `Maximum 3 time intervals per day (${key})`,
+          error: config.invalidError,
+          message: `Maximum ${config.maxIntervalsPerDay} time intervals per day (${key})`,
         });
       }
 
@@ -553,7 +620,7 @@ export class StoreService {
           idx >= timeRangeCount
         ) {
           throw new BadRequestException({
-            error: STORE_ERRORS.INVALID_DELIVERY_SCHEDULE,
+            error: config.invalidError,
             message: `Invalid timeRanges index for ${key}: ${String(idx)}`,
           });
         }
@@ -571,6 +638,7 @@ export class StoreService {
       cellPhone: string;
       avatar?: string;
       delivery?: AttentionSchedule;
+      customerPickup?: PickupSchedule;
       meta: StoreFunnelMeta;
     },
     devCode?: string,
@@ -584,6 +652,7 @@ export class StoreService {
       address: doc.address,
       cellPhone: doc.cellPhone,
       delivery: doc.delivery,
+      customerPickup: doc.customerPickup,
       meta: doc.meta,
     };
     if (devCode !== undefined) {

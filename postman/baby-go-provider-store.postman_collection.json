@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "API store proveedor (base: /api/p/v1/store).\n\nVariables de colección:\n- `baseUrl`: http://localhost:3000/api\n- `storeId`: id MongoDB de la store (tras crear perfil)\n- `token`: JWT (opcional si usás ENABLE_DEV_AUTH_BYPASS en local)\n\nAuth: Bearer {{token}}. En dev sin token, el backend puede usar usuario dev.",
+    "description": "API store proveedor (base: /api/v1/store).\n\nVariables de colección:\n- `baseUrl`: http://localhost:3000/api\n- `storeId`: id MongoDB de la store (tras crear perfil)\n- `token`: JWT (opcional si usás ENABLE_DEV_AUTH_BYPASS en local)\n\nAuth: Bearer {{token}}. En dev sin token, el backend puede usar usuario dev.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -39,9 +39,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store",
+              "raw": "{{baseUrl}}/v1/store",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store"]
+              "path": ["v1", "store"]
             },
             "description": "GET todas las stores."
           },
@@ -53,9 +53,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/profile",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/profile",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "profile"]
+              "path": ["v1", "store", "{{storeId}}", "profile"]
             },
             "description": "GET perfil de una store por id (debe pertenecer al usuario autenticado)."
           },
@@ -76,9 +76,9 @@
               "raw": "{\n  \"name\": \"Baby Confy\",\n  \"country\": \"NL\",\n  \"address\": {\n    \"addressLine1\": \"Seevank 144, 1161 AR Zwanenburg, Netherlands\",\n    \"addressLine2\": \"alguna indicacion extra\",\n    \"placeId\": \"ChIJxxxxxxxxxxxxxxxxxxxx\"\n  },\n  \"cellPhone\": \"+315615628854\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/profile",
+              "raw": "{{baseUrl}}/v1/store/profile",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "profile"]
+              "path": ["v1", "store", "profile"]
             },
             "description": "Respuesta incluye `id` → copiar a variable `storeId`."
           },
@@ -99,9 +99,9 @@
               "raw": "{\n  \"name\": \"Baby Confy Updated\",\n  \"address\": {\n    \"addressLine2\": \"nueva indicacion extra\"\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/profile",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/profile",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "profile"]
+              "path": ["v1", "store", "{{storeId}}", "profile"]
             },
             "description": "Actualización parcial. Todos los campos son opcionales: name, country, address, cellPhone."
           },
@@ -113,9 +113,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/cell-verification/resend",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/cell-verification/resend",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "cell-verification", "resend"]
+              "path": ["v1", "store", "{{storeId}}", "cell-verification", "resend"]
             }
           },
           "response": []
@@ -135,9 +135,9 @@
               "raw": "{\n  \"code\": \"123456\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/cell-verification",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/cell-verification",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "cell-verification"]
+              "path": ["v1", "store", "{{storeId}}", "cell-verification"]
             }
           },
           "response": []
@@ -159,9 +159,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/avatar",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/avatar",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "avatar"]
+              "path": ["v1", "store", "{{storeId}}", "avatar"]
             }
           },
           "response": []
@@ -181,9 +181,9 @@
               "raw": "{\n  \"available\": true,\n  \"timeRanges\": [\n    \"7:30-9:30\",\n    \"12:30-14:00\",\n    \"17:30-19:00\",\n    \"10:00-15:00\"\n  ],\n  \"days\": {\n    \"mon\": [0, 1, 2],\n    \"tue\": [0, 1],\n    \"sat\": [3]\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/delivery",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/delivery",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "delivery"]
+              "path": ["v1", "store", "{{storeId}}", "delivery"]
             }
           },
           "response": []
@@ -203,9 +203,9 @@
               "raw": "{\n  \"available\": true,\n  \"available24h\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/delivery",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/delivery",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "delivery"]
+              "path": ["v1", "store", "{{storeId}}", "delivery"]
             }
           },
           "response": []
@@ -225,23 +225,69 @@
               "raw": "{\n  \"basePrice\": 100,\n  \"priceKm\": 30,\n  \"maxDeliveryDistance\": 30\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}/delivery-pricing",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/delivery-pricing",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}", "delivery-pricing"]
+              "path": ["v1", "store", "{{storeId}}", "delivery-pricing"]
             },
             "description": "Precios en centavos. Requiere haber configurado delivery (6a/6b) antes."
           },
           "response": []
         },
         {
-          "name": "7. Eliminar store",
+          "name": "7a. Customer pickup — horario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"available\": true,\n  \"timeRanges\": [\n    \"7:30-9:30\",\n    \"12:30-14:00\",\n    \"17:30-19:00\",\n    \"10:00-15:00\"\n  ],\n  \"days\": {\n    \"mon\": [0, 1],\n    \"thu\": [2],\n    \"sat\": [3]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/customer-pickup",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "{{storeId}}", "customer-pickup"]
+            },
+            "description": "Máx. 2 intervalos por día. También soporta available24h: true."
+          },
+          "response": []
+        },
+        {
+          "name": "7a. Customer pickup — 24/7",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"available\": true,\n  \"available24h\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/customer-pickup",
+              "host": ["{{baseUrl}}"],
+              "path": ["v", "v1", "store", "{{storeId}}", "customer-pickup"]
+            },
+            "description": "Sólo soporta available24h: true."
+          },
+          "response": []
+        },
+        {
+          "name": "8. Eliminar store",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/p/v1/store/{{storeId}}",
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["p", "v1", "store", "{{storeId}}"]
+              "path": ["v1", "store", "{{storeId}}"]
             }
           },
           "response": []

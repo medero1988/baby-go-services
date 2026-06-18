@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import {
   AttentionSchedule,
+  PickupSchedule,
   StoreAddress,
   StoreFunnelMeta,
 } from './store.types';
@@ -38,6 +39,9 @@ export class Store {
   /** Horario de delivery (`AttentionSchedule`); Mixed para flexibilidad de `days`. */
   @Prop({ type: MongooseSchema.Types.Mixed, required: false })
   delivery?: AttentionSchedule;
+
+  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
+  customerPickup?: PickupSchedule;
 
   @Prop({ trim: true })
   cellVerificationCode?: string;
