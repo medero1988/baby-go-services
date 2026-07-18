@@ -8,7 +8,8 @@ export type FunnelLastSteep =
   | 'delivery'
   | 'delivery-pricing'
   | 'customer-pickup'
-  | 'bank-account';
+  | 'bank-account'
+  | 'confirmation';
 
 export type StoreState = 'missing-info' | 'pending-review' | 'active';
 
@@ -16,6 +17,8 @@ export interface StoreFunnelMeta {
   state: StoreState;
   lastSteep: FunnelLastSteep;
   cellValidated: boolean;
+  /** Timestamp ISO cuando el provider confirmó / envió a revisión. */
+  confirmedAt?: string;
 }
 
 /** Dirección de la tienda (Google Places). */

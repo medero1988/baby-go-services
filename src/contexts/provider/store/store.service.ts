@@ -11,6 +11,7 @@ import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { StripeService } from '../../../shared/stripe/stripe.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { ConfirmStoreDto } from './dto/confirm-store.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
@@ -44,6 +45,9 @@ export const STORE_ERRORS = {
   DELIVERY_NOT_CONFIGURED: 'delivery_not_configured',
   NO_FIELDS_TO_UPDATE: 'no_fields_to_update',
   INVALID_BANK_ACCOUNT: 'invalid_bank_account',
+  CELL_NOT_VALIDATED: 'cell_not_validated',
+  BANK_ACCOUNT_REQUIRED: 'bank_account_required',
+  ALREADY_CONFIRMED: 'store_already_confirmed',
 } as const;
 
 /** Moneda por defecto según país (payout bancario). */
@@ -637,6 +641,74 @@ export class StoreService {
     return this.toStoreResponse(updated as StoreDocument);
   }
 
+  /**
+   * Confirmación final del funnel (botón Create store).
+   * Acepta T&Cs y deja la store en `pending-review` para revisión Baby Go (~24h).
+   */
+  async confirmStore(
+    storeId: string,
+    userId: string,
+    dto: ConfirmStoreDto,
+  ): Promise<StoreProfileResponse> {
+    if (!dto.acceptedTerms) {
+      throw new BadRequestException({
+        error: 'terms_not_accepted',
+        message: 'acceptedTerms must be true to confirm the store',
+      });
+    }
+
+    const store = await this.storeModel.findById(storeId).exec();
+    if (!store || String(store.userId) !== userId) {
+      throw new NotFoundException('Store not found');
+    }
+
+    if (
+      store.meta.state === 'pending-review' ||
+      store.meta.state === 'active'
+    ) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.ALREADY_CONFIRMED,
+        message: 'Store was already confirmed',
+      });
+    }
+
+    if (!store.meta.cellValidated) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.CELL_NOT_VALIDATED,
+        message: 'Cell phone must be validated before confirmation',
+      });
+    }
+
+    if (!store.bankAccount?.token && !store.bankAccount?.last4) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.BANK_ACCOUNT_REQUIRED,
+        message: 'Bank account must be configured before confirmation',
+      });
+    }
+
+    const confirmedAt = new Date().toISOString();
+    const updated = await this.storeModel
+      .findByIdAndUpdate(
+        storeId,
+        {
+          $set: {
+            'meta.state': 'pending-review',
+            'meta.lastSteep': 'confirmation',
+            'meta.confirmedAt': confirmedAt,
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
   private buildAttentionScheduleFromDto(
     dto: UpdateDeliveryDto,
   ): AttentionSchedule {
@@ -779,7 +851,8 @@ export class StoreService {
       customerPickup: doc.customerPickup,
       stripeConnect: doc.stripeConnect,
       bankAccount: doc.bankAccount,
-      bankAccountTk: doc.bankAccount?.externalAccountId ?? doc.bankAccount?.token,
+      bankAccountTk:
+        doc.bankAccount?.externalAccountId ?? doc.bankAccount?.token,
       meta: doc.meta,
     };
     if (devCode !== undefined) {

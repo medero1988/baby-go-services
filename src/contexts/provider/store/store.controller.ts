@@ -21,6 +21,7 @@ import {
   SendCellCodeDto,
 } from './dto/cell-verification.dto';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { ConfirmStoreDto } from './dto/confirm-store.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
@@ -206,6 +207,24 @@ export class StoreController {
       throw new BadRequestException({ error: 'invalid_store_id' });
     }
     return this.storeService.updateBankAccount(storeId, userId, body);
+  }
+
+  /**
+   * Confirmación final del funnel (Create store).
+   * Body: `{ "acceptedTerms": true }` → meta.state = pending-review.
+   */
+  @Post('/:id/confirmation')
+  async confirmStore(
+    @Param('id') id: string,
+    @Body() body: ConfirmStoreDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.storeService.confirmStore(storeId, userId, body);
   }
 
   @Post('/:id/stripe-connect/account-link')

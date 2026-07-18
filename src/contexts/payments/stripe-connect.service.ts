@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import type Stripe from 'stripe';
 import { EnvService } from '../../config/env.service';
 import { StripeService } from '../../shared/stripe/stripe.service';
 import { StoreDocument } from '../provider/store/store.schema';
@@ -57,7 +58,7 @@ export class StripeConnectService {
     assertStripeRedirectUrl(returnUrl, 'returnUrl');
     assertStripeRedirectUrl(refreshUrl, 'refreshUrl');
 
-    let link;
+    let link: Stripe.AccountLink;
     try {
       link = await this.stripe.createAccountLink({
         accountId,

@@ -307,6 +307,29 @@
           "response": []
         },
         {
+          "name": "7ab. Confirmación final (Create store)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acceptedTerms\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/confirmation",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "{{storeId}}", "confirmation"]
+            },
+            "description": "Paso final del funnel (botón Create store / Information review).\n\nRequiere:\n- `acceptedTerms: true`\n- celular validado\n- bank-account configurado\n\nResultado:\n- `meta.state` = `pending-review` (revisión Baby Go ~24h)\n- `meta.lastSteep` = `confirmation`\n- `meta.confirmedAt` = ISO timestamp\n\nLa store queda lista para agregar productos; visibles a clientes cuando pase a `active`."
+          },
+          "response": []
+        },
+        {
           "name": "7b. Stripe Connect — account link",
           "request": {
             "method": "POST",

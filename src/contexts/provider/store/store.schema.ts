@@ -75,9 +75,11 @@ export class Store {
           'delivery-pricing',
           'customer-pickup',
           'bank-account',
+          'confirmation',
         ],
       },
       cellValidated: Boolean,
+      confirmedAt: { type: String, required: false },
     },
     required: true,
     default: (): StoreFunnelMeta => ({

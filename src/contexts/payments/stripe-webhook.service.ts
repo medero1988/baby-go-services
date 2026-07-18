@@ -23,7 +23,7 @@ export class StripeWebhookService {
         await this.stripeConnectService.handleAccountUpdated(event.data.object);
         break;
       case 'capability.updated': {
-        const capability = event.data.object as Stripe.Capability;
+        const capability = event.data.object;
         const accountId =
           typeof capability.account === 'string'
             ? capability.account
