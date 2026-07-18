@@ -39,5 +39,20 @@ export default (): EnvConfig => {
       authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
       messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID ?? '',
     },
+    stripe: {
+      secretKey: process.env.STRIPE_SECRET_KEY ?? '',
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+      defaultCurrency: process.env.STRIPE_DEFAULT_CURRENCY ?? 'eur',
+      platformFeePercent: parseFloat(
+        process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '10',
+      ),
+      connectReturnUrl:
+        process.env.STRIPE_CONNECT_RETURN_URL ??
+        `http://localhost:${port}/api/stripe-connect/return`,
+      connectRefreshUrl:
+        process.env.STRIPE_CONNECT_REFRESH_URL ??
+        `http://localhost:${port}/api/stripe-connect/refresh`,
+    },
   };
 };

@@ -33,9 +33,24 @@ export interface TwilioConfig {
   messagingServiceSid: string;
 }
 
+/** Stripe: cuenta plataforma + Connect + webhooks. */
+export interface StripeConfig {
+  secretKey: string;
+  publishableKey: string;
+  webhookSecret: string;
+  /** Moneda por defecto (ISO, ej. eur). */
+  defaultCurrency: string;
+  /** Comisión plataforma (%). El resto va al provider al transferir. */
+  platformFeePercent: number;
+  /** URLs de retorno onboarding Connect (deep links app). */
+  connectReturnUrl: string;
+  connectRefreshUrl: string;
+}
+
 export interface EnvConfig {
   app: AppConfig;
   database: DatabaseConfig;
   auth: AuthConfig;
   twilio: TwilioConfig;
+  stripe: StripeConfig;
 }

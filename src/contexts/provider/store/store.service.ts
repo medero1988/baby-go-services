@@ -9,7 +9,9 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
+import { StripeService } from '../../../shared/stripe/stripe.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
@@ -25,8 +27,10 @@ import {
   PickupSchedule,
   ServiceSchedule,
   StoreAddress,
+  StoreBankAccount,
   StoreFunnelMeta,
   StoreProfileResponse,
+  StripeConnectStatus,
 } from './store.types';
 import { StoreAddressDto } from './dto/store-address.dto';
 
@@ -39,7 +43,21 @@ export const STORE_ERRORS = {
   INVALID_PICKUP_SCHEDULE: 'invalid_pickup_schedule',
   DELIVERY_NOT_CONFIGURED: 'delivery_not_configured',
   NO_FIELDS_TO_UPDATE: 'no_fields_to_update',
+  INVALID_BANK_ACCOUNT: 'invalid_bank_account',
 } as const;
+
+/** Moneda por defecto según país (payout bancario). */
+const COUNTRY_DEFAULT_CURRENCY: Record<string, string> = {
+  NL: 'eur',
+  DE: 'eur',
+  ES: 'eur',
+  FR: 'eur',
+  IT: 'eur',
+  PT: 'eur',
+  IE: 'eur',
+  US: 'usd',
+  GB: 'gbp',
+};
 
 const DELIVERY_DAY_KEYS: DeliveryDayKey[] = [
   'mon',
@@ -62,6 +80,7 @@ export class StoreService {
     @InjectModel('Store') private readonly storeModel: Model<StoreDocument>,
     private env: EnvService,
     private twilioService: TwilioService,
+    private stripeService: StripeService,
   ) {}
 
   async createProfile(
@@ -515,6 +534,109 @@ export class StoreService {
     return this.toStoreResponse(updated as StoreDocument);
   }
 
+  /** Guarda los datos bancarios (payout) de la store y los tokeniza en Stripe. */
+  async updateBankAccount(
+    storeId: string,
+    userId: string,
+    dto: UpdateBankAccountDto,
+  ): Promise<StoreProfileResponse> {
+    // Ownership robusto (los refs pueden estar guardados como string u ObjectId).
+    const store = await this.storeModel.findById(storeId).exec();
+    if (!store || String(store.userId) !== userId) {
+      throw new NotFoundException('Store not found');
+    }
+
+    const rawNumber = (
+      dto.accountType === 'IBAN' ? dto.iban : dto.accountNumber
+    )?.replace(/\s/g, '');
+    if (!rawNumber) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.INVALID_BANK_ACCOUNT,
+        message:
+          dto.accountType === 'IBAN'
+            ? 'iban is required when accountType is IBAN'
+            : 'accountNumber is required when accountType is NUMBER',
+      });
+    }
+
+    const country = dto.country.trim().toUpperCase();
+    const currency = (
+      dto.currency?.trim() ||
+      COUNTRY_DEFAULT_CURRENCY[country] ||
+      this.env.stripeDefaultCurrency
+    ).toLowerCase();
+    const holderName = `${dto.firstName.trim()} ${dto.lastName.trim()}`.trim();
+    const entityType = dto.entityType ?? 'individual';
+
+    let token: string;
+    let last4: string | undefined;
+    try {
+      const bankToken = await this.stripeService.createBankAccountToken({
+        country,
+        currency,
+        accountNumber: rawNumber,
+        routingNumber: dto.routingNumber?.replace(/\s/g, ''),
+        accountHolderName: holderName,
+        accountHolderType: entityType,
+      });
+      token = bankToken.id;
+      last4 = bankToken.bank_account?.last4 ?? rawNumber.slice(-4);
+    } catch (err) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.INVALID_BANK_ACCOUNT,
+        message: err instanceof Error ? err.message : 'Invalid bank account',
+      });
+    }
+
+    // Si ya existe cuenta Connect, adjuntamos la cuenta externa (best-effort).
+    let externalAccountId: string | undefined;
+    if (store.stripeConnect?.accountId) {
+      try {
+        const external = await this.stripeService.attachExternalBankAccount(
+          store.stripeConnect.accountId,
+          token,
+        );
+        externalAccountId = external.id;
+      } catch {
+        // No bloquea el guardado; el token queda persistido igualmente.
+      }
+    }
+
+    const bankAccount: StoreBankAccount = {
+      accountType: dto.accountType,
+      holderName,
+      entityType,
+      country,
+      currency,
+      bankName: dto.bankName.trim(),
+      last4,
+      swiftCode: dto.swiftCode?.trim() || undefined,
+      address: dto.address?.trim() || undefined,
+      token,
+      externalAccountId,
+    };
+
+    const updated = await this.storeModel
+      .findByIdAndUpdate(
+        storeId,
+        {
+          $set: {
+            bankAccount,
+            'meta.lastSteep': 'bank-account',
+          },
+        },
+        { new: true },
+      )
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
   private buildAttentionScheduleFromDto(
     dto: UpdateDeliveryDto,
   ): AttentionSchedule {
@@ -639,6 +761,8 @@ export class StoreService {
       avatar?: string;
       delivery?: AttentionSchedule;
       customerPickup?: PickupSchedule;
+      stripeConnect?: StripeConnectStatus;
+      bankAccount?: StoreBankAccount;
       meta: StoreFunnelMeta;
     },
     devCode?: string,
@@ -653,6 +777,9 @@ export class StoreService {
       cellPhone: doc.cellPhone,
       delivery: doc.delivery,
       customerPickup: doc.customerPickup,
+      stripeConnect: doc.stripeConnect,
+      bankAccount: doc.bankAccount,
+      bankAccountTk: doc.bankAccount?.externalAccountId ?? doc.bankAccount?.token,
       meta: doc.meta,
     };
     if (devCode !== undefined) {

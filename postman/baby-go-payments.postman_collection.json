@@ -1,0 +1,144 @@
+{
+  "info": {
+    "_postman_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "name": "Baby Go — Payments (Cliente)",
+    "description": "Pagos Stripe — contexto cliente.\n\nModelo marketplace: el pago va a la cuenta plataforma y al completar el servicio se transfiere al provider.\n\nVariables:\n- `baseUrl`: http://localhost:3000/api\n- `token`: JWT del cliente\n- `storeId`: store donde se alquila\n- `paymentId`: id del pago (tras crear PaymentIntent)\n\nFlujo sugerido:\n1. Provider completa Stripe Connect (colección Provider Store → 7b/7c)\n2. POST Crear PaymentIntent → copiar `payment.id` a `paymentId`\n3. POST Confirmar pago (dev) → status `succeeded` (en app real: clientSecret + Stripe.js)\n4. POST Transferir al provider (fin del alquiler)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "storeId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "1. Crear PaymentIntent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{storeId}}\",\n  \"amount\": 10000,\n  \"orderId\": \"order-demo-001\",\n  \"currency\": \"eur\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments"]
+            },
+            "description": "Crea PaymentIntent en cuenta plataforma. Respuesta: `clientSecret`, `publishableKey`, `payment`. Copiá `payment.id` → variable `paymentId`. Monto en centavos (10000 = €100.00)."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Consultar pago",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}"]
+            },
+            "description": "Estado del pago: requires_payment_method, succeeded, transferred, etc."
+          },
+          "response": []
+        },
+        {
+          "name": "2b. Confirmar pago (solo dev/test)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}/confirm-test",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}", "confirm-test"]
+            },
+            "description": "Simula el cobro con tarjeta test `pm_card_visa`. Solo funciona fuera de production.\n\nDespués de esto, `status` debe ser `succeeded` y podés ejecutar el paso 3 (transfer)."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Transferir al provider (servicio completado)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/payments/{{paymentId}}/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "payments", "{{paymentId}}", "transfer"]
+            },
+            "description": "Cuando el alquiler finaliza: transfiere `providerAmount` al connected account de la store. Requiere status `succeeded`. La comisión plataforma queda en cuenta empresa."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks (referencia)",
+      "item": [
+        {
+          "name": "Stripe webhook (solo Stripe CLI)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "stripe-signature",
+                "value": "{{stripeSignature}}",
+                "description": "Generado por Stripe CLI — no manual"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/stripe",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", "stripe"]
+            },
+            "description": "No probar manualmente en Postman. Usar Stripe CLI:\n\nstripe listen --forward-to localhost:3000/api/webhooks/stripe\n\nCopiar el whsec_... a STRIPE_WEBHOOK_SECRET en .env"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

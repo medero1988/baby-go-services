@@ -4,7 +4,9 @@ import {
   AttentionSchedule,
   PickupSchedule,
   StoreAddress,
+  StoreBankAccount,
   StoreFunnelMeta,
+  StripeConnectStatus,
 } from './store.types';
 
 export type StoreDocument = Store & Document;
@@ -42,6 +44,14 @@ export class Store {
 
   @Prop({ type: MongooseSchema.Types.Mixed, required: false })
   customerPickup?: PickupSchedule;
+
+  /** Stripe Connect Express (cuenta bancaria del provider). */
+  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
+  stripeConnect?: StripeConnectStatus;
+
+  /** Datos bancarios (payout) de la store; metadata + token Stripe. */
+  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
+  bankAccount?: StoreBankAccount;
 
   @Prop({ trim: true })
   cellVerificationCode?: string;

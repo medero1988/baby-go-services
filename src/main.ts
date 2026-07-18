@@ -6,7 +6,7 @@ import { AppModule } from './app.module';
 import { EnvService } from './config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const env = app.get(EnvService);
 
   // Prefijo global para todas las rutas

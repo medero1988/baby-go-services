@@ -5,6 +5,7 @@ import {
   AuthConfig,
   DatabaseConfig,
   EnvConfig,
+  StripeConfig,
   TwilioConfig,
 } from './env.types';
 
@@ -23,6 +24,7 @@ export class EnvService {
       database: this.database,
       auth: this.auth,
       twilio: this.twilio,
+      stripe: this.stripe,
     };
   }
 
@@ -44,6 +46,11 @@ export class EnvService {
   /** Twilio: SMS (verificación celular) */
   get twilio(): TwilioConfig {
     return this.config.getOrThrow<TwilioConfig>('twilio');
+  }
+
+  /** Stripe: pagos plataforma + Connect */
+  get stripe(): StripeConfig {
+    return this.config.getOrThrow<StripeConfig>('stripe');
   }
 
   // ——— Acceso rápido (getters cortos) ———
@@ -114,5 +121,33 @@ export class EnvService {
 
   get twilioMessagingServiceSid(): string {
     return this.twilio.messagingServiceSid;
+  }
+
+  get stripeSecretKey(): string {
+    return this.stripe.secretKey;
+  }
+
+  get stripePublishableKey(): string {
+    return this.stripe.publishableKey;
+  }
+
+  get stripeWebhookSecret(): string {
+    return this.stripe.webhookSecret;
+  }
+
+  get stripeDefaultCurrency(): string {
+    return this.stripe.defaultCurrency;
+  }
+
+  get stripePlatformFeePercent(): number {
+    return this.stripe.platformFeePercent;
+  }
+
+  get stripeConnectReturnUrl(): string {
+    return this.stripe.connectReturnUrl;
+  }
+
+  get stripeConnectRefreshUrl(): string {
+    return this.stripe.connectRefreshUrl;
   }
 }

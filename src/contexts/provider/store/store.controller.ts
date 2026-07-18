@@ -21,19 +21,54 @@ import {
   SendCellCodeDto,
 } from './dto/cell-verification.dto';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
+import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
 import { UpdateStoreProfileDto } from './dto/update-store-profile.dto';
+import { CreateStripeAccountLinkDto } from '../../payments/dto/create-stripe-account-link.dto';
+import { ProviderMovementsQueryDto } from '../../payments/dto/provider-movements-query.dto';
+import { StripeConnectService } from '../../payments/stripe-connect.service';
+import { PaymentService } from '../../payments/payment.service';
 import { StoreService } from './store.service';
 
 @Controller(`${ROUTES.PROVIDER}/store`)
 export class StoreController {
-  constructor(private readonly storeService: StoreService) {}
+  constructor(
+    private readonly storeService: StoreService,
+    private readonly stripeConnectService: StripeConnectService,
+    private readonly paymentService: PaymentService,
+  ) {}
 
   @Get()
   getAllStores() {
     return this.storeService.findAll();
+  }
+
+  /** Movimientos de pagos de todas las stores del proveedor. */
+  @Get('/movements')
+  getProviderMovements(
+    @Query() query: ProviderMovementsQueryDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    return this.paymentService.getProviderMovements(String(user._id), query);
+  }
+
+  /** Movimientos de pagos de una store puntual del proveedor. */
+  @Get('/:id/movements')
+  getStoreMovements(
+    @Param('id') id: string,
+    @Query() query: ProviderMovementsQueryDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.paymentService.getProviderMovements(String(user._id), {
+      ...query,
+      storeId,
+    });
   }
 
   @Get('/:id/profile')
@@ -157,6 +192,48 @@ export class StoreController {
       throw new BadRequestException({ error: 'invalid_store_id' });
     }
     return this.storeService.updateCustomerPickup(storeId, userId, body);
+  }
+
+  @Post('/:id/bank-account')
+  async updateBankAccount(
+    @Param('id') id: string,
+    @Body() body: UpdateBankAccountDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.storeService.updateBankAccount(storeId, userId, body);
+  }
+
+  @Post('/:id/stripe-connect/account-link')
+  createStripeAccountLink(
+    @Param('id') id: string,
+    @Body() body: CreateStripeAccountLinkDto,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return this.stripeConnectService.createAccountLink(storeId, userId, body);
+  }
+
+  @Get('/:id/stripe-connect/status')
+  async syncStripeConnectStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: { _id: string },
+  ) {
+    const storeId = String(id).trim();
+    const userId = String(user._id);
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    await this.stripeConnectService.syncConnectStatus(storeId, userId);
+    return this.storeService.findOneById(storeId, userId);
   }
 
   @Delete('/:id')

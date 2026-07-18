@@ -27,6 +27,10 @@
     {
       "key": "token",
       "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
     }
   ],
   "item": [
@@ -273,9 +277,111 @@
             "url": {
               "raw": "{{baseUrl}}/v1/store/{{storeId}}/customer-pickup",
               "host": ["{{baseUrl}}"],
-              "path": ["v", "v1", "store", "{{storeId}}", "customer-pickup"]
+              "path": ["v1", "store", "{{storeId}}", "customer-pickup"]
             },
             "description": "Sólo soporta available24h: true."
+          },
+          "response": []
+        },
+        {
+          "name": "7a. Datos bancarios (payout)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"IBAN\",\n  \"firstName\": \"Jhon\",\n  \"lastName\": \"Doe\",\n  \"country\": \"NL\",\n  \"currency\": \"eur\",\n  \"iban\": \"NL91ABNA0417164300\",\n  \"bankName\": \"ABN AMRO\",\n  \"swiftCode\": \"ABNANL2A\",\n  \"address\": \"Seevank 144, Zwanenburg\",\n  \"entityType\": \"individual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/bank-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "{{storeId}}", "bank-account"]
+            },
+            "description": "Guarda los datos bancarios (payout) de la store y los tokeniza en Stripe.\n\n- `accountType`: `IBAN` (usar campo `iban`) o `NUMBER` (usar campo `accountNumber` + `routingNumber`).\n- No se persiste el IBAN/nro completo: se guarda `last4` + el token de Stripe.\n- Respuesta incluye `bankAccount` y `bankAccountTk` (id de Stripe).\n- Setea `meta.lastSteep = 'bank-account'`.\n\nStripe (test) valida el checksum del IBAN. Usá un IBAN válido de test.\n\nEjemplo US (accountType NUMBER):\n{\n  \"accountType\": \"NUMBER\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"country\": \"US\",\n  \"currency\": \"usd\",\n  \"accountNumber\": \"000123456789\",\n  \"routingNumber\": \"110000000\",\n  \"bankName\": \"STRIPE TEST BANK\"\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "7b. Stripe Connect — account link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"returnUrl\": \"http://localhost:3000/api/stripe-connect/return\",\n  \"refreshUrl\": \"http://localhost:3000/api/stripe-connect/refresh\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/stripe-connect/account-link",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "{{storeId}}", "stripe-connect", "account-link"]
+            },
+            "description": "Crea cuenta Connect Express (si no existe) y devuelve URL de onboarding Stripe.\n\n1. Ejecutá este request → copiá `url` de la respuesta.\n2. Abrí `url` en el browser y completá el onboarding (datos de prueba Stripe).\n3. Ejecutá **7c. sync status** → verificá `stripeConnect.onboardingComplete: true`.\n4. Recién ahí podés crear pagos (colección baby-go-payments).\n\nStripe exige URLs http(s); no acepta deep links (`babygo://`)."
+          },
+          "response": []
+        },
+        {
+          "name": "7c. Stripe Connect — sync status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/stripe-connect/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "{{storeId}}", "stripe-connect", "status"]
+            },
+            "description": "Sincroniza estado Connect desde Stripe y devuelve perfil store con `stripeConnect`."
+          },
+          "response": []
+        },
+        {
+          "name": "7d. Movimientos de pagos (todas las stores)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/movements?status=transferred",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "movements"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "transferred",
+                  "description": "Opcional. Filtra por estado del pago (succeeded, transferred, etc.).",
+                  "disabled": true
+                },
+                {
+                  "key": "storeId",
+                  "value": "{{storeId}}",
+                  "description": "Opcional. Filtra por una store puntual.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Movimientos de pagos de todas las stores del proveedor autenticado.\n\nDevuelve `summary` (cobrado, ganancias transferidas, pendientes y comisión de la plataforma) + `movements` (detalle por pago).\n\nFiltros opcionales por query: `status`, `storeId`."
+          },
+          "response": []
+        },
+        {
+          "name": "7e. Movimientos de pagos (store puntual)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/store/{{storeId}}/movements",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "store", "{{storeId}}", "movements"]
+            },
+            "description": "Movimientos de pagos de una store puntual del proveedor. Acepta `?status=` opcional."
           },
           "response": []
         },

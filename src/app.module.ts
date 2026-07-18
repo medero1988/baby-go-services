@@ -8,7 +8,9 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ConfigModule } from './config';
 import { EnvService } from './config/env.service';
 import { ClientModule } from './contexts/client/client.module';
+import { PaymentsModule } from './contexts/payments/payments.module';
 import { ProviderModule } from './contexts/provider/provider.module';
+import { StripeModule } from './shared/stripe/stripe.module';
 import { TwilioModule } from './shared/twilio/twilio.module';
 
 @Module({
@@ -16,6 +18,8 @@ import { TwilioModule } from './shared/twilio/twilio.module';
     ConfigModule,
     AuthModule,
     TwilioModule,
+    StripeModule,
+    PaymentsModule,
     MongooseModule.forRootAsync({
       useFactory: (env: EnvService) => ({ uri: env.mongoUri }),
       inject: [EnvService],
