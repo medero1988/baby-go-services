@@ -18,13 +18,22 @@ export interface DatabaseConfig {
 
 export interface AuthConfig {
   jwtSecret: string;
+  /** Expiración del access JWT (ej. 1h, 15m). */
   jwtExpiresIn: string;
+  /** Expiración del refresh token (ej. 30d). */
+  jwtRefreshExpiresIn: string;
   googleClientId: string;
   facebookAppId: string;
   /** En local: si true, permite bypass de auth (usuario dev) cuando no hay token */
   devBypassAuth: boolean;
   devUserEmail: string;
   devUserName: string;
+}
+
+export interface MailConfig {
+  resendApiKey: string;
+  /** From verificado en Resend, ej. "Baby Go <noreply@tudominio.com>" */
+  from: string;
 }
 
 export interface TwilioConfig {
@@ -51,6 +60,7 @@ export interface EnvConfig {
   app: AppConfig;
   database: DatabaseConfig;
   auth: AuthConfig;
+  mail: MailConfig;
   twilio: TwilioConfig;
   stripe: StripeConfig;
 }

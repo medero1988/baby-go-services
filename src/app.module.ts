@@ -12,12 +12,14 @@ import { PaymentsModule } from './contexts/payments/payments.module';
 import { ProviderModule } from './contexts/provider/provider.module';
 import { StripeModule } from './shared/stripe/stripe.module';
 import { TwilioModule } from './shared/twilio/twilio.module';
+import { MailModule } from './shared/mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
     TwilioModule,
+    MailModule,
     StripeModule,
     PaymentsModule,
     MongooseModule.forRootAsync({

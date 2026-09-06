@@ -5,6 +5,7 @@ import {
   AuthConfig,
   DatabaseConfig,
   EnvConfig,
+  MailConfig,
   StripeConfig,
   TwilioConfig,
 } from './env.types';
@@ -23,6 +24,7 @@ export class EnvService {
       app: this.app,
       database: this.database,
       auth: this.auth,
+      mail: this.mail,
       twilio: this.twilio,
       stripe: this.stripe,
     };
@@ -41,6 +43,11 @@ export class EnvService {
   /** Auth: JWT, Google, Facebook */
   get auth(): AuthConfig {
     return this.config.getOrThrow<AuthConfig>('auth');
+  }
+
+  /** Mail: Resend */
+  get mail(): MailConfig {
+    return this.config.getOrThrow<MailConfig>('mail');
   }
 
   /** Twilio: SMS (verificación celular) */
@@ -91,6 +98,10 @@ export class EnvService {
     return this.auth.jwtExpiresIn;
   }
 
+  get jwtRefreshExpiresIn(): string {
+    return this.auth.jwtRefreshExpiresIn;
+  }
+
   get googleClientId(): string {
     return this.auth.googleClientId;
   }
@@ -109,6 +120,14 @@ export class EnvService {
 
   get devUserName(): string {
     return this.auth.devUserName;
+  }
+
+  get resendApiKey(): string {
+    return this.mail.resendApiKey;
+  }
+
+  get mailFrom(): string {
+    return this.mail.from;
   }
 
   get twilioAccountSid(): string {

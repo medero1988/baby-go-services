@@ -24,7 +24,8 @@ export default (): EnvConfig => {
     },
     auth: {
       jwtSecret: process.env.JWT_SECRET ?? 'change-me-in-production',
-      jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1h',
+      jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
       googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
       facebookAppId: process.env.FACEBOOK_APP_ID ?? '',
       devBypassAuth:
@@ -33,6 +34,10 @@ export default (): EnvConfig => {
           process.env.ENABLE_DEV_AUTH_BYPASS === '1'),
       devUserEmail: process.env.DEV_USER_EMAIL ?? 'dev@local.dev',
       devUserName: process.env.DEV_USER_NAME ?? 'Dev Local',
+    },
+    mail: {
+      resendApiKey: process.env.RESEND_API_KEY ?? '',
+      from: process.env.MAIL_FROM ?? 'Baby Go <onboarding@resend.dev>',
     },
     twilio: {
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',

@@ -1,0 +1,257 @@
+{
+  "info": {
+    "_postman_id": "c3d4e5f6-a7b8-9012-cdef-234567890123",
+    "name": "Baby Go — Auth",
+    "description": "Auth local + social.\n\nBase: {{baseUrl}} = http://localhost:3000/api\n\nRequiere RESEND_API_KEY + MAIL_FROM en .env (correos reales).\n\nFlujo local:\n1. POST /v1/auth/account → llega código al email\n2. POST /v1/auth/email-verification con el código del mail\n3. POST /v1/auth/login → accessToken + refreshToken\n4. POST /v1/auth/access-refresh (rota refresh)\n5. POST /v1/auth/logout\n\nRecovery: password-recovery → código al mail → new-password",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "accountId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Local",
+      "item": [
+        {
+          "name": "1. Create account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pepe\",\n  \"lastName\": \"Perez\",\n  \"email\": \"pepe@gmail.com\",\n  \"password\": \"Secret123\",\n  \"passwordConfirmation\": \"Secret123\",\n  \"role\": \"provider\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "account"]
+            },
+            "description": "Crea cuenta local y envía el código por Resend al email. Copiá `id` → accountId. El código NO viene en la response: mirá el correo."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Email verification",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/email-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "email-verification"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2b. Resend email code",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/resend-email-code",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "resend-email-code"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pepe@gmail.com\",\n  \"password\": \"Secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "login"]
+            },
+            "description": "Copiá accessToken → token y refreshToken → refreshToken."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Access refresh",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/access-refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "access-refresh"]
+            },
+            "description": "Rota el refresh: invalida el enviado y devuelve `token` (access) + `refreshToken` nuevo + `expiresAt`. Actualizá la variable `refreshToken` con el nuevo valor."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6. Password recovery",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pepe@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/password-recovery",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "password-recovery"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6b. Resend password recovery",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pepe@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/resend-password-recovery",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "resend-password-recovery"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7. New password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pepe@gmail.com\",\n  \"recoveryCode\": \"123456\",\n  \"newPassword\": \"NewSecret123\",\n  \"confirmPassword\": \"NewSecret123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/new-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "new-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "8. Delete account (JWT)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "account"]
+            },
+            "description": "Elimina la cuenta autenticada + refresh tokens + stores del usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "8b. Delete account by email (solo tests)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pepe@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/account/delete-test",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "account", "delete-test"]
+            },
+            "description": "Solo NODE_ENV !== production. Borra cuenta local por email sin JWT (útil para limpiar pruebas)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Social",
+      "item": [
+        {
+          "name": "Google",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "google"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Facebook",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/facebook",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "facebook"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
