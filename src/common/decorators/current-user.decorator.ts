@@ -1,16 +1,16 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import type { AuthUser } from '../../auth/auth-user';
 
-/** Request con user (inyectado por JWT o dev bypass) */
 interface RequestWithUser {
-  user: unknown;
+  user: AuthUser;
 }
 
 /**
- * Inyecta el usuario actual (req.user) en rutas protegidas por JwtAuthGuard.
- * Uso: @CurrentUser() user: UserPayload
+ * Inyecta el usuario autenticado (req.user) en rutas protegidas por JwtAuthGuard.
+ * Uso: @CurrentUser() user: AuthUser
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): unknown => {
+  (_data: unknown, ctx: ExecutionContext): AuthUser => {
     const request = ctx.switchToHttp().getRequest<RequestWithUser>();
     return request.user;
   },

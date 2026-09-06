@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "API store proveedor (base: /api/v1/store).\n\nVariables de colección:\n- `baseUrl`: http://localhost:3000/api\n- `storeId`: id MongoDB de la store (tras crear perfil)\n- `token`: JWT (opcional si usás ENABLE_DEV_AUTH_BYPASS en local)\n\nAuth: Bearer {{token}}. En dev sin token, el backend puede usar usuario dev.",
+    "description": "API store proveedor (base: /api/v1/store).\n\n**Auth obligatorio:** Bearer {{token}} (JWT de login con role `provider`).\nSin token → 401. Con role `client` → 403.\nEl `userId` sale del token, no del body. `GET /store` lista solo las del provider. Las rutas `/:storeId/*` validan ownership.\n\nVariables:\n- `baseUrl`: http://localhost:3000/api\n- `storeId`: id MongoDB de la store\n- `token`: accessToken del login provider\n\nFlujo: login provider → POST profile → … → confirmation.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -47,7 +47,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "store"]
             },
-            "description": "GET todas las stores."
+            "description": "GET todas las stores del provider del token."
           },
           "response": []
         },
@@ -112,7 +112,7 @@
           "response": []
         },
         {
-          "name": "3. Reenviar código SMS",
+          "name": "3. Reenviar código (WhatsApp)",
           "request": {
             "method": "POST",
             "header": [],
@@ -120,7 +120,8 @@
               "raw": "{{baseUrl}}/v1/store/{{storeId}}/cell-verification/resend",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "store", "{{storeId}}", "cell-verification", "resend"]
-            }
+            },
+            "description": "Envía OTP por WhatsApp (sandbox Twilio, gratis).\n\n**Setup una vez:**\n1. Twilio Console → Messaging → Try it out → Send a WhatsApp message\n2. Desde tu WhatsApp (+569…) mandá al número sandbox el texto `join <código>` que te muestra Twilio\n3. Luego este resend → te llega el código por WhatsApp\n\nRespuesta incluye `channel`, `codeSent`, y en dev `devCode`."
           },
           "response": []
         },
@@ -166,7 +167,8 @@
               "raw": "{{baseUrl}}/v1/store/{{storeId}}/avatar",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "store", "{{storeId}}", "avatar"]
-            }
+            },
+            "description": "Multipart form-data, field `avatar` = File (no Text).\nSi Postman muestra triángulo amarillo en el archivo, volvé a seleccionarlo.\nNo pongas header Content-Type manual (Postman arma el boundary)."
           },
           "response": []
         },

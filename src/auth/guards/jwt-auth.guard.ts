@@ -7,13 +7,13 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { EnvService } from '../../config/env.service';
 import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
+import type { AuthUser } from '../auth-user';
 import { AuthService } from '../auth.service';
-import type { DevUserPayload } from '../auth.service';
 
 /** Request con user opcional (inyectado por JWT o dev bypass) */
 interface RequestWithUser {
   headers: { authorization?: string; 'x-dev-bypass'?: string };
-  user?: DevUserPayload;
+  user?: AuthUser;
 }
 
 /**

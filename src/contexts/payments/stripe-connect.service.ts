@@ -27,12 +27,7 @@ export class StripeConnectService {
     userId: string,
     dto: CreateStripeAccountLinkDto,
   ): Promise<AccountLinkResponse> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
 
     let accountId = store.stripeConnect?.accountId;
 
@@ -87,12 +82,7 @@ export class StripeConnectService {
     storeId: string,
     userId: string,
   ): Promise<StripeConnectStatus> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
     if (!store.stripeConnect?.accountId) {
       throw new BadRequestException({
         error: 'stripe_connect_not_started',
@@ -146,6 +136,14 @@ export class StripeConnectService {
       store.meta.lastSteep = 'bank-account';
     }
     await store.save();
+  }
+
+  private async requireOwnedStore(storeId: string, userId: string) {
+    const store = await this.storeModel.findById(storeId).exec();
+    if (!store || String(store.userId) !== userId) {
+      throw new NotFoundException('Store not found');
+    }
+    return store;
   }
 }
 

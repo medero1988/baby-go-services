@@ -114,8 +114,8 @@ export class StoreService {
     const doc = store.toObject();
     const storeId = String(doc._id);
 
-    // Al crear la tienda se envía el código de verificación al celular.
-    const code = await this.setVerificationCodeForStore(
+    // Al crear la tienda se envía el código de verificación (WhatsApp/SMS).
+    const { code } = await this.setVerificationCodeForStore(
       storeId,
       userId,
       normalizedCell,
@@ -130,12 +130,7 @@ export class StoreService {
     userId: string,
     dto: UpdateStoreProfileDto,
   ): Promise<StoreProfileResponse> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
 
     const $set: Record<string, unknown> = {};
     let cellChanged = false;
@@ -175,7 +170,7 @@ export class StoreService {
     }
 
     const updated = await this.storeModel
-      .findOneAndUpdate({ _id: storeId, userId }, { $set }, { new: true })
+      .findByIdAndUpdate(storeId, { $set }, { new: true })
       .lean()
       .exec();
 
@@ -227,39 +222,53 @@ export class StoreService {
   async sendCellVerificationCode(
     storeId: string,
     userId: string,
-  ): Promise<{ codeSent: boolean; devCode?: string }> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+  ): Promise<{
+    codeSent: boolean;
+    channel: 'whatsapp' | 'sms';
+    hint?: string;
+    devCode?: string;
+  }> {
+    const store = await this.requireOwnedStore(storeId, userId);
 
-    const code = await this.setVerificationCodeForStore(
+    const { code, delivery } = await this.setVerificationCodeForStore(
       storeId,
       userId,
       store.cellPhone,
     );
-    const result: { codeSent: boolean; devCode?: string } = { codeSent: true };
+    const result: {
+      codeSent: boolean;
+      channel: 'whatsapp' | 'sms';
+      hint?: string;
+      devCode?: string;
+    } = {
+      codeSent: delivery.sent,
+      channel: delivery.channel,
+    };
+    if (delivery.hint) {
+      result.hint = delivery.hint;
+    }
     if (!this.env.isProduction) {
       result.devCode = code;
     }
     return result;
   }
 
-  /** Genera código, lo guarda en la tienda, envía SMS por Twilio si está configurado y devuelve el código. */
+  /** Genera código, lo guarda, envía por WhatsApp/SMS y devuelve código + resultado de entrega. */
   private async setVerificationCodeForStore(
     storeId: string,
     userId: string,
     cellPhone: string,
-  ): Promise<string> {
+  ): Promise<{
+    code: string;
+    delivery: Awaited<ReturnType<TwilioService['sendVerificationCode']>>;
+  }> {
     const code = generateNumericCode(CODE_LENGTH);
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + CODE_EXPIRY_MINUTES);
 
     await this.storeModel
       .updateOne(
-        { _id: storeId, userId },
+        { _id: storeId },
         {
           $set: {
             cellVerificationCode: code,
@@ -269,11 +278,24 @@ export class StoreService {
       )
       .exec();
 
-    await this.twilioService.sendSms(cellPhone, code);
-    return code;
+    const delivery = await this.twilioService.sendVerificationCode(
+      cellPhone,
+      code,
+    );
+    return { code, delivery };
   }
 
-  /** Devuelve todas las tiendas. */
+  /** Devuelve las tiendas del provider autenticado. */
+  async findAllByOwner(userId: string): Promise<StoreProfileResponse[]> {
+    const stores = await this.storeModel
+      .find({ $expr: { $eq: [{ $toString: '$userId' }, userId] } })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
+    return stores.map((doc) => this.toStoreResponse(doc as StoreDocument));
+  }
+
+  /** @deprecated prefer findAllByOwner */
   async findAll(): Promise<StoreProfileResponse[]> {
     const stores = await this.storeModel.find().lean().exec();
     return stores.map((doc) => this.toStoreResponse(doc as StoreDocument));
@@ -284,14 +306,20 @@ export class StoreService {
     storeId: string,
     userId: string,
   ): Promise<StoreProfileResponse> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .lean()
-      .exec();
-    if (!store) {
+    const store = await this.requireOwnedStore(storeId, userId);
+    return this.toStoreResponse(store.toObject() as StoreDocument);
+  }
+
+  /** Ownership robusto (userId puede ser string u ObjectId en DB). */
+  private async requireOwnedStore(
+    storeId: string,
+    userId: string,
+  ): Promise<StoreDocument> {
+    const store = await this.storeModel.findById(storeId).exec();
+    if (!store || String(store.userId) !== userId) {
       throw new NotFoundException('Store not found');
     }
-    return this.toStoreResponse(store as StoreDocument);
+    return store;
   }
 
   /** Sube y guarda el avatar de la store (multipart field: `avatar`). */
@@ -304,15 +332,21 @@ export class StoreService {
       throw new BadRequestException({ error: 'avatar_missing' });
     }
 
-    if (!file.buffer) {
+    if (!file.buffer?.length) {
       throw new BadRequestException({ error: 'avatar_empty' });
     }
 
-    if (!file.mimetype?.startsWith('image/')) {
-      throw new BadRequestException({ error: 'invalid_avatar_type' });
+    const ext = resolveAvatarExtension(file);
+    if (!ext) {
+      throw new BadRequestException({
+        error: 'invalid_avatar_type',
+        message:
+          'Usá PNG, JPEG, WEBP o GIF. En Postman: Body → form-data → key `avatar` (tipo File).',
+      });
     }
 
-    const ext = getAllowedImageExtension(file.mimetype);
+    await this.requireOwnedStore(storeId, userId);
+
     const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
     await fs.mkdir(uploadsDir, { recursive: true });
 
@@ -325,8 +359,8 @@ export class StoreService {
     const avatarUrl = `/api/uploads/avatars/${filename}`;
 
     const updated = await this.storeModel
-      .findOneAndUpdate(
-        { _id: storeId, userId },
+      .findByIdAndUpdate(
+        storeId,
         {
           $set: {
             avatar: avatarUrl,
@@ -346,12 +380,7 @@ export class StoreService {
   }
 
   async remove(storeId: string, userId: string): Promise<{ success: boolean }> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
 
     // Si existe un avatar local, elimínalo al borrar la store.
     if (store.avatar) {
@@ -369,7 +398,7 @@ export class StoreService {
       });
     }
 
-    await this.storeModel.deleteOne({ _id: storeId, userId }).exec();
+    await this.storeModel.deleteOne({ _id: storeId }).exec();
     return { success: true };
   }
 
@@ -379,12 +408,7 @@ export class StoreService {
     userId: string,
     code: string,
   ): Promise<StoreProfileResponse> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
 
     const normalizedCode = code.trim().toUpperCase();
     const storedCode = store.cellVerificationCode?.trim().toUpperCase();
@@ -430,20 +454,14 @@ export class StoreService {
     userId: string,
     dto: UpdateDeliveryDto,
   ): Promise<StoreProfileResponse> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .lean()
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
 
     const schedule = this.buildAttentionScheduleFromDto(dto);
     const delivery = preserveDeliveryPricing(schedule, store.delivery);
 
     const updated = await this.storeModel
-      .findOneAndUpdate(
-        { _id: storeId, userId },
+      .findByIdAndUpdate(
+        storeId,
         {
           $set: {
             delivery,
@@ -468,13 +486,7 @@ export class StoreService {
     userId: string,
     dto: UpdateDeliveryPricingDto,
   ): Promise<StoreProfileResponse> {
-    const store = await this.storeModel
-      .findOne({ _id: storeId, userId })
-      .lean()
-      .exec();
-    if (!store) {
-      throw new NotFoundException('Store not found');
-    }
+    const store = await this.requireOwnedStore(storeId, userId);
     if (!store.delivery) {
       throw new BadRequestException({
         error: STORE_ERRORS.DELIVERY_NOT_CONFIGURED,
@@ -489,8 +501,8 @@ export class StoreService {
     };
 
     const updated = await this.storeModel
-      .findOneAndUpdate(
-        { _id: storeId, userId },
+      .findByIdAndUpdate(
+        storeId,
         {
           $set: {
             delivery,
@@ -518,8 +530,8 @@ export class StoreService {
     const customerPickup = this.buildCustomerPickupFromDto(dto);
 
     const updated = await this.storeModel
-      .findOneAndUpdate(
-        { _id: storeId, userId },
+      .findByIdAndUpdate(
+        storeId,
         {
           $set: {
             customerPickup,
@@ -917,20 +929,29 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function getAllowedImageExtension(mimetype: string): string {
+/** Extensión permitida: MIME image/* o, si Postman manda octet-stream, por nombre de archivo. */
+function resolveAvatarExtension(file: Express.Multer.File): string | null {
   const mimeToExt: Record<string, string> = {
     'image/png': 'png',
     'image/jpeg': 'jpg',
     'image/jpg': 'jpg',
+    'image/pjpeg': 'jpg',
     'image/webp': 'webp',
     'image/gif': 'gif',
   };
 
-  const ext = mimeToExt[mimetype];
-  if (!ext) {
-    throw new BadRequestException({ error: 'invalid_avatar_type' });
+  const mime = (file.mimetype ?? '').toLowerCase().trim();
+  if (mimeToExt[mime]) {
+    return mimeToExt[mime];
   }
-  return ext;
+
+  const name = (file.originalname ?? '').toLowerCase();
+  const match = name.match(/\.(png|jpe?g|webp|gif)$/);
+  if (match) {
+    return match[1] === 'jpeg' ? 'jpg' : match[1];
+  }
+
+  return null;
 }
 
 function generateNumericCode(length: number): string {

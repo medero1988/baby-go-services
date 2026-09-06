@@ -43,6 +43,9 @@ export default (): EnvConfig => {
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
       authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
       messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID ?? '',
+      whatsappFrom: process.env.TWILIO_WHATSAPP_FROM ?? 'whatsapp:+14155238886',
+      cellVerificationChannel:
+        process.env.CELL_VERIFICATION_CHANNEL === 'sms' ? 'sms' : 'whatsapp',
     },
     stripe: {
       secretKey: process.env.STRIPE_SECRET_KEY ?? '',

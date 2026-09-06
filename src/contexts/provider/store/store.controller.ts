@@ -10,12 +10,16 @@ import {
   Delete,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { Types } from 'mongoose';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ROUTES } from '../../../common/constants/api-routes.constants';
+import type { AuthUser } from '../../../auth/auth-user';
+import { Roles } from '../../../auth/decorators/roles.decorator';
+import { RolesGuard } from '../../../auth/guards/roles.guard';
 import {
   CellVerificationDto,
   SendCellCodeDto,
@@ -33,7 +37,14 @@ import { StripeConnectService } from '../../payments/stripe-connect.service';
 import { PaymentService } from '../../payments/payment.service';
 import { StoreService } from './store.service';
 
+/**
+ * Store APIs del provider.
+ * Requieren Bearer JWT + role `provider`.
+ * El `userId` sale del token (`user.id`); las rutas con `:id` validan ownership.
+ */
 @Controller(`${ROUTES.PROVIDER}/store`)
+@UseGuards(RolesGuard)
+@Roles('provider')
 export class StoreController {
   constructor(
     private readonly storeService: StoreService,
@@ -41,226 +52,197 @@ export class StoreController {
     private readonly paymentService: PaymentService,
   ) {}
 
+  private parseStoreId(id: string): string {
+    const storeId = String(id).trim();
+    if (!Types.ObjectId.isValid(storeId)) {
+      throw new BadRequestException({ error: 'invalid_store_id' });
+    }
+    return storeId;
+  }
+
+  /** Stores del provider autenticado. */
   @Get()
-  getAllStores() {
-    return this.storeService.findAll();
+  getMyStores(@CurrentUser() user: AuthUser) {
+    return this.storeService.findAllByOwner(user.id);
   }
 
   /** Movimientos de pagos de todas las stores del proveedor. */
   @Get('/movements')
   getProviderMovements(
     @Query() query: ProviderMovementsQueryDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.paymentService.getProviderMovements(String(user._id), query);
-  }
-
-  /** Movimientos de pagos de una store puntual del proveedor. */
-  @Get('/:id/movements')
-  getStoreMovements(
-    @Param('id') id: string,
-    @Query() query: ProviderMovementsQueryDto,
-    @CurrentUser() user: { _id: string },
-  ) {
-    const storeId = String(id).trim();
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.paymentService.getProviderMovements(String(user._id), {
-      ...query,
-      storeId,
-    });
-  }
-
-  @Get('/:id/profile')
-  getStoreProfile(
-    @Param('id') id: string,
-    @CurrentUser() user: { _id: string },
-  ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.findOneById(storeId, userId);
+    return this.paymentService.getProviderMovements(user.id, query);
   }
 
   @Post('profile')
   async createStore(
     @Query('steep') steep: string,
     @Body() body: CreateStoreProfileDto | SendCellCodeDto | CellVerificationDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const userId = String(user._id);
-
     return this.storeService.createProfile(
-      userId,
+      user.id,
       body as CreateStoreProfileDto,
     );
+  }
+
+  @Get('/:id/movements')
+  getStoreMovements(
+    @Param('id') id: string,
+    @Query() query: ProviderMovementsQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const storeId = this.parseStoreId(id);
+    return this.paymentService.getProviderMovements(user.id, {
+      ...query,
+      storeId,
+    });
+  }
+
+  @Get('/:id/profile')
+  getStoreProfile(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.storeService.findOneById(this.parseStoreId(id), user.id);
   }
 
   @Patch('/:id/profile')
   async updateStoreProfile(
     @Param('id') id: string,
     @Body() body: UpdateStoreProfileDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.updateProfile(storeId, userId, body);
+    return this.storeService.updateProfile(
+      this.parseStoreId(id),
+      user.id,
+      body,
+    );
   }
 
   @Post('/:id/cell-verification')
   async validateCellCode(
     @Body() body: CellVerificationDto,
     @Param('id') id: string,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const userId = String(user._id);
-    return this.storeService.validateCellCode(id, userId, body.code);
+    return this.storeService.validateCellCode(
+      this.parseStoreId(id),
+      user.id,
+      body.code,
+    );
   }
 
   @Post('/:id/cell-verification/resend')
   async resendCellVerificationCode(
     @Param('id') id: string,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const userId = String(user._id);
-    return this.storeService.sendCellVerificationCode(id, userId);
+    return this.storeService.sendCellVerificationCode(
+      this.parseStoreId(id),
+      user.id,
+    );
   }
 
   @Post('/:id/avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: multer.memoryStorage(),
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
   async uploadAvatar(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-
-    return this.storeService.uploadAvatar(storeId, userId, file);
+    return this.storeService.uploadAvatar(this.parseStoreId(id), user.id, file);
   }
 
   @Post('/:id/delivery')
   async updateDelivery(
     @Param('id') id: string,
     @Body() body: UpdateDeliveryDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.updateDelivery(storeId, userId, body);
+    return this.storeService.updateDelivery(
+      this.parseStoreId(id),
+      user.id,
+      body,
+    );
   }
 
   @Post('/:id/delivery-pricing')
   async updateDeliveryPricing(
     @Param('id') id: string,
     @Body() body: UpdateDeliveryPricingDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.updateDeliveryPricing(storeId, userId, body);
+    return this.storeService.updateDeliveryPricing(
+      this.parseStoreId(id),
+      user.id,
+      body,
+    );
   }
 
   @Post('/:id/customer-pickup')
   async updateCustomerPickup(
     @Param('id') id: string,
     @Body() body: UpdateCustomerPickupDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.updateCustomerPickup(storeId, userId, body);
+    return this.storeService.updateCustomerPickup(
+      this.parseStoreId(id),
+      user.id,
+      body,
+    );
   }
 
   @Post('/:id/bank-account')
   async updateBankAccount(
     @Param('id') id: string,
     @Body() body: UpdateBankAccountDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.updateBankAccount(storeId, userId, body);
+    return this.storeService.updateBankAccount(
+      this.parseStoreId(id),
+      user.id,
+      body,
+    );
   }
 
-  /**
-   * Confirmación final del funnel (Create store).
-   * Body: `{ "acceptedTerms": true }` → meta.state = pending-review.
-   */
   @Post('/:id/confirmation')
   async confirmStore(
     @Param('id') id: string,
     @Body() body: ConfirmStoreDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.storeService.confirmStore(storeId, userId, body);
+    return this.storeService.confirmStore(this.parseStoreId(id), user.id, body);
   }
 
   @Post('/:id/stripe-connect/account-link')
   createStripeAccountLink(
     @Param('id') id: string,
     @Body() body: CreateStripeAccountLinkDto,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return this.stripeConnectService.createAccountLink(storeId, userId, body);
+    return this.stripeConnectService.createAccountLink(
+      this.parseStoreId(id),
+      user.id,
+      body,
+    );
   }
 
   @Get('/:id/stripe-connect/status')
   async syncStripeConnectStatus(
     @Param('id') id: string,
-    @CurrentUser() user: { _id: string },
+    @CurrentUser() user: AuthUser,
   ) {
-    const storeId = String(id).trim();
-    const userId = String(user._id);
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    await this.stripeConnectService.syncConnectStatus(storeId, userId);
-    return this.storeService.findOneById(storeId, userId);
+    const storeId = this.parseStoreId(id);
+    await this.stripeConnectService.syncConnectStatus(storeId, user.id);
+    return this.storeService.findOneById(storeId, user.id);
   }
 
   @Delete('/:id')
-  async deleteStore(
-    @Param('id') id: string,
-    @CurrentUser() user: { _id: string },
-  ) {
-    const userId = String(user._id);
-    return this.storeService.remove(id, userId);
+  async deleteStore(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.storeService.remove(this.parseStoreId(id), user.id);
   }
 }

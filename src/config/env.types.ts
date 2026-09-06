@@ -40,6 +40,13 @@ export interface TwilioConfig {
   accountSid: string;
   authToken: string;
   messagingServiceSid: string;
+  /**
+   * Sender WhatsApp (sandbox gratis: whatsapp:+14155238886).
+   * Ver: Twilio Console → Messaging → Try it out → Send a WhatsApp message.
+   */
+  whatsappFrom: string;
+  /** Canal para OTP de celular: whatsapp (default) | sms */
+  cellVerificationChannel: 'whatsapp' | 'sms';
 }
 
 /** Stripe: cuenta plataforma + Connect + webhooks. */

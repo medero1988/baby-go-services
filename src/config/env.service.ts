@@ -142,6 +142,14 @@ export class EnvService {
     return this.twilio.messagingServiceSid;
   }
 
+  get twilioWhatsappFrom(): string {
+    return this.twilio.whatsappFrom;
+  }
+
+  get cellVerificationChannel(): 'whatsapp' | 'sms' {
+    return this.twilio.cellVerificationChannel;
+  }
+
   get stripeSecretKey(): string {
     return this.stripe.secretKey;
   }

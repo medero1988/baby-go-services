@@ -20,6 +20,7 @@ import {
 import { RefreshToken, RefreshTokenDocument } from './refresh-token.schema';
 import { User, UserDocument } from './user.schema';
 import { Store, StoreDocument } from '../contexts/provider/store/store.schema';
+import { toAuthUser, type AuthUser } from './auth-user';
 
 export interface SocialUserInfo {
   provider: 'google' | 'facebook' | 'dev';
@@ -29,16 +30,8 @@ export interface SocialUserInfo {
   picture?: string;
 }
 
-/** Usuario dev (lean) para adjuntar a request en bypass local */
-export interface DevUserPayload {
-  _id: unknown;
-  email: string;
-  name?: string;
-  picture?: string;
-  provider: string;
-  providerId: string;
-  role: string;
-}
+/** @deprecated usar AuthUser */
+export type DevUserPayload = AuthUser;
 
 export interface AuthResult {
   accessToken: string;
@@ -536,7 +529,7 @@ export class AuthService {
     };
   }
 
-  async getOrCreateDevUser(): Promise<DevUserPayload | null> {
+  async getOrCreateDevUser(): Promise<AuthUser | null> {
     if (this.env.isProduction || !this.env.devBypassAuth) {
       return null;
     }
@@ -557,7 +550,7 @@ export class AuthService {
       });
       user = created.toObject();
     }
-    return user as DevUserPayload;
+    return toAuthUser(user);
   }
 
   private async issueSession(user: UserDocument): Promise<AuthResult> {
@@ -585,7 +578,11 @@ export class AuthService {
     accessToken: string;
     expiresAt: string;
   } {
-    const payload = { sub: String(user._id), email: user.email };
+    const payload = {
+      sub: String(user._id),
+      email: user.email,
+      role: user.role,
+    };
     const signOptions: JwtSignOptions = {
       expiresIn: this.env.jwtExpiresIn as JwtSignOptions['expiresIn'],
     };
