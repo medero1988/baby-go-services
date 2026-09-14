@@ -4,7 +4,6 @@ import { Document } from 'mongoose';
 export type UserDocument = User & Document;
 
 export type AuthProvider = 'google' | 'facebook' | 'dev' | 'local';
-export type UserRole = 'client' | 'provider';
 
 @Schema({ collection: 'users', timestamps: true })
 export class User {
@@ -45,9 +44,6 @@ export class User {
 
   @Prop()
   passwordRecoveryCodeExpiresAt?: Date;
-
-  @Prop({ default: 'client', enum: ['client', 'provider'] })
-  role: UserRole;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

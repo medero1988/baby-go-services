@@ -18,8 +18,6 @@ import { Types } from 'mongoose';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ROUTES } from '../../../common/constants/api-routes.constants';
 import type { AuthUser } from '../../../auth/auth-user';
-import { Roles } from '../../../auth/decorators/roles.decorator';
-import { RolesGuard } from '../../../auth/guards/roles.guard';
 import {
   CellVerificationDto,
   SendCellCodeDto,
@@ -39,12 +37,10 @@ import { StoreService } from './store.service';
 
 /**
  * Store APIs del provider.
- * Requieren Bearer JWT + role `provider`.
+ * Requieren Bearer JWT
  * El `userId` sale del token (`user.id`); las rutas con `:id` validan ownership.
  */
 @Controller(`${ROUTES.PROVIDER}/store`)
-@UseGuards(RolesGuard)
-@Roles('provider')
 export class StoreController {
   constructor(
     private readonly storeService: StoreService,
