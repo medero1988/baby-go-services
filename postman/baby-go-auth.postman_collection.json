@@ -22,7 +22,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Pepe\",\n  \"lastName\": \"Perez\",\n  \"email\": \"pepe@gmail.com\",\n  \"password\": \"Secret123\",\n  \"passwordConfirmation\": \"Secret123\",\n  \"role\": \"provider\"\n}"
+              "raw": "{\n  \"name\": \"Pepe\",\n  \"lastName\": \"Perez\",\n  \"email\": \"pepe@gmail.com\",\n  \"password\": \"Secret123\",\n  \"role\": \"provider\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/auth/account",
