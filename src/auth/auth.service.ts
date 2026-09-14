@@ -44,7 +44,6 @@ export interface AuthResult {
     lastName?: string;
     picture?: string;
     provider: string;
-    role: string;
     emailVerified?: boolean;
   };
 }
@@ -207,7 +206,6 @@ export class AuthService {
       name: dto.name.trim(),
       lastName: dto.lastName.trim(),
       passwordHash,
-      role: dto.role,
       emailVerified: false,
       emailVerificationCode: code,
       emailVerificationCodeExpiresAt: expiresAt,
@@ -568,7 +566,6 @@ export class AuthService {
         lastName: user.lastName,
         picture: user.picture,
         provider: user.provider,
-        role: user.role,
         emailVerified: user.emailVerified,
       },
     };

@@ -22,9 +22,6 @@ export class CreateAccountDto {
   @IsString()
   @MinLength(8)
   password: string;
-
-  @IsIn(['client', 'provider'])
-  role: UserRole;
 }
 
 export class LoginDto {
