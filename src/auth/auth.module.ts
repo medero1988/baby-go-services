@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthController } from './auth.controller';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -26,6 +27,7 @@ import { Store, StoreSchema } from '../contexts/provider/store/store.schema';
       inject: [EnvService],
     }),
   ],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })
