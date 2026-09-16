@@ -7,7 +7,6 @@ import { User, UserSchema } from './user.schema';
 import { RefreshToken, RefreshTokenSchema } from './refresh-token.schema';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { RolesGuard } from './guards/roles.guard';
 import { Store, StoreSchema } from '../contexts/provider/store/store.schema';
 
 @Module({
@@ -27,7 +26,7 @@ import { Store, StoreSchema } from '../contexts/provider/store/store.schema';
       inject: [EnvService],
     }),
   ],
-  providers: [AuthService, JwtStrategy, RolesGuard],
-  exports: [AuthService, JwtModule, RolesGuard],
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

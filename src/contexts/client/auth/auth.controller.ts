@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common';
 import { Public } from '../../../common/decorators/public.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ROUTES } from '../../../common/constants/api-routes.constants';
@@ -48,6 +48,12 @@ export class AuthController {
   @Post('account')
   createAccount(@Body() dto: CreateAccountDto) {
     return this.authService.createAccount(dto);
+  }
+
+  @Get('account')
+  getAccount(@CurrentUser() user: { _id: string }) {
+    console.log('>>> Getting account for user:', user._id);
+    return this.authService.findAccount(String(user._id));
   }
 
   /** Elimina la cuenta del usuario autenticado (y stores/refresh tokens). */

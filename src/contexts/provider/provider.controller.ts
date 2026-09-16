@@ -3,7 +3,7 @@ import { ROUTES } from '../../common/constants/api-routes.constants';
 
 /**
  * APIs de cara a proveedores.
- * Base: /api/p/v1
+ * Base: /api/v1
  */
 @Controller(ROUTES.PROVIDER)
 export class ProviderController {

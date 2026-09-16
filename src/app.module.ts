@@ -10,6 +10,7 @@ import { EnvService } from './config/env.service';
 import { ClientModule } from './contexts/client/client.module';
 import { PaymentsModule } from './contexts/payments/payments.module';
 import { ProviderModule } from './contexts/provider/provider.module';
+import { SettingsModule } from './contexts/settings/settings.module';
 import { StripeModule } from './shared/stripe/stripe.module';
 import { TwilioModule } from './shared/twilio/twilio.module';
 import { MailModule } from './shared/mail/mail.module';
@@ -28,6 +29,7 @@ import { MailModule } from './shared/mail/mail.module';
     }),
     ClientModule,
     ProviderModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

@@ -44,7 +44,6 @@ export interface AuthResult {
     lastName?: string;
     picture?: string;
     provider: string;
-    role: string;
     emailVerified?: boolean;
   };
 }
@@ -55,7 +54,6 @@ export interface CreateAccountResponse {
   lastName: string;
   email: string;
   emailVerified: boolean;
-  role: string;
 }
 
 export const AUTH_ERRORS = {
@@ -142,6 +140,10 @@ export class AuthService {
     });
   }
 
+  async findAccount(userId: string): Promise<UserDocument | null> {
+    return this.userModel.findById(userId).exec();
+  }
+
   async findOrCreateAndSign(info: SocialUserInfo): Promise<AuthResult> {
     let user = await this.userModel
       .findOne({
@@ -157,7 +159,6 @@ export class AuthService {
         email: info.email.toLowerCase().trim(),
         name: info.name,
         picture: info.picture,
-        role: 'client',
         emailVerified: true,
       });
     } else {
@@ -207,7 +208,6 @@ export class AuthService {
       name: dto.name.trim(),
       lastName: dto.lastName.trim(),
       passwordHash,
-      role: dto.role,
       emailVerified: false,
       emailVerificationCode: code,
       emailVerificationCodeExpiresAt: expiresAt,
@@ -222,7 +222,6 @@ export class AuthService {
       lastName: user.lastName ?? dto.lastName,
       email: user.email,
       emailVerified: false,
-      role: user.role,
     };
   }
 
@@ -545,7 +544,6 @@ export class AuthService {
         providerId,
         email: this.env.devUserEmail,
         name: this.env.devUserName,
-        role: 'provider',
         emailVerified: true,
       });
       user = created.toObject();
@@ -568,7 +566,6 @@ export class AuthService {
         lastName: user.lastName,
         picture: user.picture,
         provider: user.provider,
-        role: user.role,
         emailVerified: user.emailVerified,
       },
     };
@@ -581,7 +578,6 @@ export class AuthService {
     const payload = {
       sub: String(user._id),
       email: user.email,
-      role: user.role,
     };
     const signOptions: JwtSignOptions = {
       expiresIn: this.env.jwtExpiresIn as JwtSignOptions['expiresIn'],
