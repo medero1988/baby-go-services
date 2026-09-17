@@ -12,6 +12,7 @@ export default (): EnvConfig => {
     app: {
       port: parseInt(port, 10),
       nodeEnv: process.env.NODE_ENV ?? 'development',
+      apiToken: process.env.API_TOKEN ?? '',
     },
     database: {
       mongoUri:

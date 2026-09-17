@@ -76,6 +76,10 @@ export class EnvService {
     return this.app.nodeEnv;
   }
 
+  get apiToken(): string {
+    return this.app.apiToken;
+  }
+
   get mongoUri(): string {
     return this.database.mongoUri;
   }
