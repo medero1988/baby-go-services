@@ -1,14 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common';
-import { Public } from '../common/decorators/public.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ROUTES } from '../common/constants/api-routes.constants';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import {
-  FacebookLoginDto,
-  GoogleLoginDto,
-} from './dto/social-login.dto';
-import {
   CreateAccountDto,
+  DeleteAccountByEmailDto,
   EmailVerificationDto,
   LoginDto,
   LogoutDto,
@@ -17,8 +14,8 @@ import {
   RefreshAccessDto,
   ResendEmailCodeDto,
   ResendPasswordRecoveryDto,
-  DeleteAccountByEmailDto,
 } from './dto/local-auth.dto';
+import { FacebookLoginDto, GoogleLoginDto } from './dto/social-login.dto';
 
 /**
  * Auth local + social.

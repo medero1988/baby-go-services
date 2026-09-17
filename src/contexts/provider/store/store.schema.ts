@@ -93,6 +93,6 @@ export class Store {
 
 export const StoreSchema = SchemaFactory.createForClass(Store);
 
-StoreSchema.index({ userId: 1 });
+StoreSchema.index({ userId: 1 }, { unique: true });
 StoreSchema.index({ name: 1 }, { unique: true });
 StoreSchema.index({ cellPhone: 1 }, { unique: true });

@@ -1,0 +1,75 @@
+{
+  "info": {
+    "_postman_id": "d4e5f6a7-b8c9-0123-def0-345678901234",
+    "name": "Baby Go — Settings",
+    "description": "Configuración global (documento único `settings`).\n\nBase: {{baseUrl}} = http://localhost:3000/api\nRutas: /api/v1/settings\n\n- GET: público (sin token)\n- PATCH: requiere Bearer JWT\n\nEl seeder crea `supportedCountries` al arrancar si no existe el documento.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "1. Get settings (público)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings"]
+            },
+            "description": "Devuelve el singleton settings (supportedCountries). Sin JWT.\nSi no hay documento → 404 `settings_not_found` (el seeder suele crearlo al boot)."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Update settings (JWT)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supportedCountries\": [\n    { \"code\": \"NL\", \"phoneCode\": \"+31\" },\n    { \"code\": \"ES\", \"phoneCode\": \"+34\" },\n    { \"code\": \"IT\", \"phoneCode\": \"+39\" },\n    { \"code\": \"DE\", \"phoneCode\": \"+49\" },\n    { \"code\": \"BE\", \"phoneCode\": \"+32\" },\n    { \"code\": \"UK\", \"phoneCode\": \"+44\" },\n    { \"code\": \"PT\", \"phoneCode\": \"+351\" },\n    { \"code\": \"FR\", \"phoneCode\": \"+33\" },\n    { \"code\": \"CL\", \"phoneCode\": \"+56\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings"]
+            },
+            "description": "Actualiza settings (parcial). Requiere Bearer {{token}}.\n`supportedCountries`: array de `{ code, phoneCode }` (phoneCode con `+`).\nSi no existe documento → 404 `settings_not_found`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

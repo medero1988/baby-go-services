@@ -5,11 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import * as path from 'path';
-import { promises as fs } from 'fs';
 import { EnvService } from '../../../config/env.service';
 import { TwilioService } from '../../../shared/twilio/twilio.service';
 import { StripeService } from '../../../shared/stripe/stripe.service';
+import { StorageService } from '../../../shared/storage/storage.service';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { ConfirmStoreDto } from './dto/confirm-store.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
@@ -48,6 +47,7 @@ export const STORE_ERRORS = {
   CELL_NOT_VALIDATED: 'cell_not_validated',
   BANK_ACCOUNT_REQUIRED: 'bank_account_required',
   ALREADY_CONFIRMED: 'store_already_confirmed',
+  STORE_ALREADY_EXISTS: 'store_already_exists',
 } as const;
 
 /** Moneda por defecto según país (payout bancario). */
@@ -85,12 +85,21 @@ export class StoreService {
     private env: EnvService,
     private twilioService: TwilioService,
     private stripeService: StripeService,
+    private storage: StorageService,
   ) {}
 
   async createProfile(
     userId: string,
     dto: CreateStoreProfileDto,
   ): Promise<StoreProfileResponse> {
+    const existing = await this.findStoreDocByOwner(userId);
+    if (existing) {
+      throw new BadRequestException({
+        error: STORE_ERRORS.STORE_ALREADY_EXISTS,
+        message: 'This provider already has a store (1:1)',
+      });
+    }
+
     const normalizedCell = dto.cellPhone.replace(/\s/g, '').trim();
 
     await this.assertNameAvailable(dto.name.trim());
@@ -285,7 +294,13 @@ export class StoreService {
     return { code, delivery };
   }
 
-  /** Devuelve las tiendas del provider autenticado. */
+  /** Store del provider (relación 1:1). */
+  async findByOwner(userId: string): Promise<StoreProfileResponse> {
+    const store = await this.requireStoreForProvider(userId);
+    return this.toStoreResponse(store.toObject() as StoreDocument);
+  }
+
+  /** @deprecated prefer findByOwner (1:1) */
   async findAllByOwner(userId: string): Promise<StoreProfileResponse[]> {
     const stores = await this.storeModel
       .find({ $expr: { $eq: [{ $toString: '$userId' }, userId] } })
@@ -295,19 +310,56 @@ export class StoreService {
     return stores.map((doc) => this.toStoreResponse(doc as StoreDocument));
   }
 
-  /** @deprecated prefer findAllByOwner */
+  /** @deprecated prefer findByOwner */
   async findAll(): Promise<StoreProfileResponse[]> {
     const stores = await this.storeModel.find().lean().exec();
     return stores.map((doc) => this.toStoreResponse(doc as StoreDocument));
   }
 
-  /** Devuelve el perfil de una tienda por id (solo si pertenece al usuario). */
+  /** Devuelve el perfil de la store del provider. */
   async findOneById(
     storeId: string,
     userId: string,
   ): Promise<StoreProfileResponse> {
     const store = await this.requireOwnedStore(storeId, userId);
     return this.toStoreResponse(store.toObject() as StoreDocument);
+  }
+
+  /**
+   * Store única del provider autenticado.
+   * Usar en APIs que ya no reciben storeId (token → provider → store).
+   */
+  async requireStoreForProvider(userId: string): Promise<StoreDocument> {
+    const store = await this.findStoreDocByOwner(userId);
+    if (!store) {
+      throw new NotFoundException({
+        error: 'store_not_found',
+        message:
+          'No store for this provider. Create one with POST /store/profile',
+      });
+    }
+    return store;
+  }
+
+  async getStoreIdForProvider(userId: string): Promise<string> {
+    const store = await this.requireStoreForProvider(userId);
+    return String(store._id);
+  }
+
+  /** @deprecated prefer requireStoreForProvider (1:1) */
+  async assertOwnedStore(
+    storeId: string,
+    userId: string,
+  ): Promise<StoreDocument> {
+    return this.requireOwnedStore(storeId, userId);
+  }
+
+  private async findStoreDocByOwner(
+    userId: string,
+  ): Promise<StoreDocument | null> {
+    return this.storeModel
+      .findOne({ $expr: { $eq: [{ $toString: '$userId' }, userId] } })
+      .exec();
   }
 
   /** Ownership robusto (userId puede ser string u ObjectId en DB). */
@@ -345,18 +397,17 @@ export class StoreService {
       });
     }
 
-    await this.requireOwnedStore(storeId, userId);
+    const store = await this.requireOwnedStore(storeId, userId);
+    if (store.avatar) {
+      await this.storage.delete({ url: store.avatar });
+    }
 
-    const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
-    await fs.mkdir(uploadsDir, { recursive: true });
-
-    const filename = `${storeId}.${ext}`;
-    const fullPath = path.join(uploadsDir, filename);
-
-    // En este flujo esperamos `memoryStorage()` en el FileInterceptor.
-    await fs.writeFile(fullPath, file.buffer);
-
-    const avatarUrl = `/api/uploads/avatars/${filename}`;
+    const stored = await this.storage.uploadImage({
+      buffer: file.buffer,
+      folder: 'avatars',
+      filename: `${storeId}.${ext}`,
+    });
+    const avatarUrl = stored.url;
 
     const updated = await this.storeModel
       .findByIdAndUpdate(
@@ -382,20 +433,8 @@ export class StoreService {
   async remove(storeId: string, userId: string): Promise<{ success: boolean }> {
     const store = await this.requireOwnedStore(storeId, userId);
 
-    // Si existe un avatar local, elimínalo al borrar la store.
     if (store.avatar) {
-      const filename = path.basename(store.avatar);
-      const avatarPath = path.join(
-        process.cwd(),
-        'uploads',
-        'avatars',
-        filename,
-      );
-      await fs.unlink(avatarPath).catch((err: unknown) => {
-        const e = err as { code?: string };
-        if (e.code === 'ENOENT') return;
-        throw err;
-      });
+      await this.storage.delete({ url: store.avatar });
     }
 
     await this.storeModel.deleteOne({ _id: storeId }).exec();

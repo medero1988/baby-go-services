@@ -1,15 +1,6 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
 import { ROUTES } from '../../common/constants/api-routes.constants';
-import { CreateSettingsDto } from './dto/create-settings.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { SettingsService } from './settings.service';
 

@@ -13,6 +13,7 @@ import { ProviderModule } from './contexts/provider/provider.module';
 import { SettingsModule } from './contexts/settings/settings.module';
 import { MailModule } from './shared/mail/mail.module';
 import { StripeModule } from './shared/stripe/stripe.module';
+import { StorageModule } from './shared/storage/storage.module';
 import { TwilioModule } from './shared/twilio/twilio.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { TwilioModule } from './shared/twilio/twilio.module';
     TwilioModule,
     MailModule,
     StripeModule,
+    StorageModule,
     PaymentsModule,
     MongooseModule.forRootAsync({
       useFactory: (env: EnvService) => ({ uri: env.mongoUri }),

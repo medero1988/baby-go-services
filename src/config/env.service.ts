@@ -8,6 +8,7 @@ import {
   MailConfig,
   StripeConfig,
   TwilioConfig,
+  CloudinaryConfig,
 } from './env.types';
 
 /**
@@ -27,6 +28,7 @@ export class EnvService {
       mail: this.mail,
       twilio: this.twilio,
       stripe: this.stripe,
+      cloudinary: this.cloudinary,
     };
   }
 
@@ -58,6 +60,10 @@ export class EnvService {
   /** Stripe: pagos plataforma + Connect */
   get stripe(): StripeConfig {
     return this.config.getOrThrow<StripeConfig>('stripe');
+  }
+
+  get cloudinary(): CloudinaryConfig {
+    return this.config.getOrThrow<CloudinaryConfig>('cloudinary');
   }
 
   // ——— Acceso rápido (getters cortos) ———
@@ -180,5 +186,25 @@ export class EnvService {
 
   get stripeConnectRefreshUrl(): string {
     return this.stripe.connectRefreshUrl;
+  }
+
+  get cloudinaryCloudName(): string {
+    return this.cloudinary.cloudName;
+  }
+
+  get cloudinaryApiKey(): string {
+    return this.cloudinary.apiKey;
+  }
+
+  get cloudinaryApiSecret(): string {
+    return this.cloudinary.apiSecret;
+  }
+
+  get isCloudinaryConfigured(): boolean {
+    return Boolean(
+      this.cloudinary.cloudName?.trim() &&
+      this.cloudinary.apiKey?.trim() &&
+      this.cloudinary.apiSecret?.trim(),
+    );
   }
 }

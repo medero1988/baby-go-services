@@ -2,24 +2,52 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-234567890123",
     "name": "Baby Go — Auth",
-    "description": "Auth local + social.\n\nBase: {{baseUrl}} = http://localhost:3000/api\n\nRequiere RESEND_API_KEY + MAIL_FROM en .env (correos reales).\n\nFlujo local:\n1. POST /v1/auth/account → llega código al email\n2. POST /v1/auth/email-verification con el código del mail\n3. POST /v1/auth/login → accessToken + refreshToken\n4. POST /v1/auth/access-refresh (rota refresh)\n5. POST /v1/auth/logout\n\nRecovery: password-recovery → código al mail → new-password",
+    "description": "Auth local + social.\n\nBase: {{baseUrl}} = http://localhost:3000/api\nRutas: /api/v1/auth/...\n\nRequiere RESEND_API_KEY + MAIL_FROM en .env (correos reales).\n\nFlujo local:\n1. POST /account → código al email (copiá `id` → accountId)\n2. POST /email-verification\n3. POST /login → accessToken + refreshToken\n4. GET /account (perfil del token)\n5. POST /access-refresh (rota refresh)\n6. POST /logout\n\nRecovery: password-recovery → código al mail → new-password\n\nVariables: token, refreshToken, accountId",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000/api" },
-    { "key": "token", "value": "" },
-    { "key": "refreshToken", "value": "" },
-    { "key": "accountId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "accountId",
+      "value": ""
+    }
   ],
   "item": [
     {
       "name": "Local",
       "item": [
         {
-          "name": "1. Create account",
+          "name": "1. Create account (provider)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Pepe\",\n  \"lastName\": \"Perez\",\n  \"email\": \"pepe@gmail.com\",\n  \"password\": \"Secret123\",\n  \"role\": \"provider\"\n}"
@@ -29,15 +57,44 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "auth", "account"]
             },
-            "description": "Crea cuenta local y envía el código por Resend al email. Copiá `id` → accountId. El código NO viene en la response: mirá el correo."
+            "description": "Crea cuenta local y envía código por Resend. Copiá `id` → accountId.\n`role`: `provider` | `client`."
+          },
+          "response": []
+        },
+        {
+          "name": "1b. Create account (client)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana\",\n  \"lastName\": \"Lopez\",\n  \"email\": \"ana@gmail.com\",\n  \"password\": \"Secret123\",\n  \"role\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "account"]
+            }
           },
           "response": []
         },
         {
           "name": "2. Email verification",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"code\": \"123456\"\n}"
@@ -46,15 +103,22 @@
               "raw": "{{baseUrl}}/v1/auth/email-verification",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "auth", "email-verification"]
-            }
+            },
+            "description": "Usá el código del email (en dev a veces también viene en logs)."
           },
           "response": []
         },
         {
           "name": "2b. Resend email code",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accountId\": \"{{accountId}}\"\n}"
@@ -70,8 +134,14 @@
         {
           "name": "3. Login",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"pepe@gmail.com\",\n  \"password\": \"Secret123\"\n}"
@@ -81,7 +151,21 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "auth", "login"]
             },
-            "description": "Copiá accessToken → token y refreshToken → refreshToken."
+            "description": "Copiá `accessToken` → token y `refreshToken` → refreshToken."
+          },
+          "response": []
+        },
+        {
+          "name": "3b. Get account (JWT)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "auth", "account"]
+            },
+            "description": "Perfil del usuario autenticado. Requiere Bearer {{token}}."
           },
           "response": []
         },
@@ -90,7 +174,12 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
@@ -100,19 +189,20 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "auth", "access-refresh"]
             },
-            "description": "Rota el refresh: invalida el enviado y devuelve `token` (access) + `refreshToken` nuevo + `expiresAt`. Actualizá la variable `refreshToken` con el nuevo valor."
+            "description": "Rota el refresh: invalida el enviado y devuelve access + refresh nuevos. Actualizá `token` y `refreshToken`."
           },
           "response": []
         },
         {
           "name": "5. Logout",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
@@ -121,15 +211,22 @@
               "raw": "{{baseUrl}}/v1/auth/logout",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "auth", "logout"]
-            }
+            },
+            "description": "Requiere Bearer + refreshToken en body."
           },
           "response": []
         },
         {
           "name": "6. Password recovery",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"pepe@gmail.com\"\n}"
@@ -145,8 +242,14 @@
         {
           "name": "6b. Resend password recovery",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"pepe@gmail.com\"\n}"
@@ -162,8 +265,14 @@
         {
           "name": "7. New password",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"pepe@gmail.com\",\n  \"recoveryCode\": \"123456\",\n  \"newPassword\": \"NewSecret123\",\n  \"confirmPassword\": \"NewSecret123\"\n}"
@@ -179,10 +288,6 @@
         {
           "name": "8. Delete account (JWT)",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
             "method": "DELETE",
             "header": [],
             "url": {
@@ -197,8 +302,14 @@
         {
           "name": "8b. Delete account by email (solo tests)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"pepe@gmail.com\"\n}"
@@ -208,7 +319,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "auth", "account", "delete-test"]
             },
-            "description": "Solo NODE_ENV !== production. Borra cuenta local por email sin JWT (útil para limpiar pruebas)."
+            "description": "Solo NODE_ENV !== production. Borra por email sin JWT."
           },
           "response": []
         }
@@ -220,8 +331,14 @@
         {
           "name": "Google",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"idToken\": \"...\"\n}"
@@ -237,8 +354,14 @@
         {
           "name": "Facebook",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accessToken\": \"...\"\n}"
