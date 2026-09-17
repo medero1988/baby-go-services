@@ -5,6 +5,7 @@
 export interface AppConfig {
   port: number;
   nodeEnv: string;
+  apiToken: string;
 }
 
 export interface DatabaseConfig {

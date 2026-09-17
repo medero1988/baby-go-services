@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ConfigModule } from './config';
 import { EnvService } from './config/env.service';
+import { ApiTokenGuard } from './common/guards/api-token.guard';
 import { ClientModule } from './contexts/client/client.module';
 import { PaymentsModule } from './contexts/payments/payments.module';
 import { ProviderModule } from './contexts/provider/provider.module';
@@ -32,6 +33,10 @@ import { MailModule } from './shared/mail/mail.module';
     SettingsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ApiTokenGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}
