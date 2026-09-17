@@ -46,3 +46,11 @@ export type ProductMediaResponse = {
   bytes?: number;
   urls: ProductMediaUrls;
 };
+
+export type ProductListResponse = {
+  items: ProductResponse[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};

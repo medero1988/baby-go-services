@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
     "name": "Baby Go — Provider Products",
-    "description": "Creación y gestión de productos del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (login como `provider`)\n**Store:** 1:1 desde el token — no enviar `storeId`.\n\n**Flujo:** login provider → store creada → GET /products (listar) → POST /products → medias → save.\n\nGET /products y GET /products/:id son del dueño (token). Filtros: ?status= & ?category=\n\n`category` string libre. `attributes` objeto libre (opcional).\nCarpeta **1. Crear** tiene 15 bodies distintos para cargar catálogo de prueba.\nMáx 8 fotos, 5MB, PNG/JPEG/WEBP/GIF. Cloudinary: cada media trae `urls.original|thumbnail|card|detail` + width/height/format/bytes.",
+    "description": "Creación y gestión de productos del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (login como `provider`)\n**Store:** 1:1 desde el token — no enviar `storeId`.\n\n**Flujo:** login provider → store creada → GET /products (listar) → POST /products → medias → save.\n\nGET /products y GET /products/:id son del dueño (token). Filtros: ?status= & ?category= & ?page= & ?limit= (default page=1, limit=20, máx 100). Respuesta `{ items, page, limit, total, totalPages }`.\n\n`title` único por provider (case-insensitive). 400 `title_not_available` si se duplica.\n`category` string libre. `attributes` objeto libre (opcional).\nCarpeta **1. Crear** tiene 15 bodies distintos para cargar catálogo de prueba.\nMáx 8 fotos, 5MB, PNG/JPEG/WEBP/GIF. Cloudinary: cada media trae `urls.original|thumbnail|card|detail` + width/height/format/bytes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -62,10 +62,20 @@
                   "key": "category",
                   "value": "bike",
                   "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Página (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items por página (default 20, máx 100)"
                 }
               ]
             },
-            "description": "Lista los productos de la store del token. Query opcional: status, category."
+            "description": "Lista paginada de productos de la store del token. Query: status, category, page, limit. Respuesta `{ items, page, limit, total, totalPages }`."
           },
           "response": []
         },

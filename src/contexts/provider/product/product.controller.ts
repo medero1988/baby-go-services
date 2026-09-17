@@ -52,7 +52,7 @@ export class ProductController {
     return value;
   }
 
-  /** Productos de la store del provider (token). */
+  /** Productos de la store del provider (token). Paginado: page, limit. */
   @Get()
   list(@Query() query: ListProductsQueryDto, @CurrentUser() user: AuthUser) {
     return this.productService.findAllByOwner(user.id, query);

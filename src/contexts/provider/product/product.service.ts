@@ -10,12 +10,15 @@ import { StoreService } from '../store/store.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Product, ProductDocument, ProductMedia } from './product.schema';
 import {
+  ProductListResponse,
   ProductMediaResponse,
   ProductPrice,
   ProductResponse,
 } from './product.types';
 
 const MAX_PRODUCT_MEDIAS = 8;
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
 
 @Injectable()
 export class ProductService {
@@ -36,12 +39,15 @@ export class ProductService {
   ): Promise<ProductResponse> {
     const store = await this.storeService.requireStoreForProvider(userId);
     const storeId = String(store._id);
+    const title = dto.title.trim();
+
+    await this.assertTitleAvailable(userId, title);
 
     const product = await this.productModel.create({
       userId,
       storeId,
       category: dto.category.trim().toLowerCase(),
-      title: dto.title.trim(),
+      title,
       description: dto.description.trim(),
       price: normalizePrice(dto.price),
       attributes: dto.attributes ?? {},
@@ -55,9 +61,18 @@ export class ProductService {
   /** Productos de la store del provider autenticado. */
   async findAllByOwner(
     userId: string,
-    query: { status?: ProductResponse['status']; category?: string } = {},
-  ): Promise<ProductResponse[]> {
+    query: {
+      status?: ProductResponse['status'];
+      category?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ): Promise<ProductListResponse> {
     await this.storeService.requireStoreForProvider(userId);
+
+    const page = query.page ?? DEFAULT_PAGE;
+    const limit = query.limit ?? DEFAULT_LIMIT;
+    const skip = (page - 1) * limit;
 
     const filter: Record<string, unknown> = {
       $expr: { $eq: [{ $toString: '$userId' }, userId] },
@@ -69,13 +84,24 @@ export class ProductService {
       filter.category = query.category.trim().toLowerCase();
     }
 
-    const products = await this.productModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+    const [products, total] = await Promise.all([
+      this.productModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.productModel.countDocuments(filter).exec(),
+    ]);
 
-    return products.map((doc) => this.toResponse(doc as ProductDocument));
+    return {
+      items: products.map((doc) => this.toResponse(doc as ProductDocument)),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 0,
+    };
   }
 
   /** Detalle de un producto propio. */
@@ -257,6 +283,28 @@ export class ProductService {
     return product;
   }
 
+  private async assertTitleAvailable(
+    userId: string,
+    title: string,
+    excludeProductId?: string,
+  ): Promise<void> {
+    const query: Record<string, unknown> = {
+      $expr: { $eq: [{ $toString: '$userId' }, userId] },
+      title: new RegExp(`^${escapeRegex(title)}$`, 'i'),
+    };
+    if (excludeProductId) {
+      query._id = { $ne: excludeProductId };
+    }
+
+    const existing = await this.productModel.findOne(query).lean().exec();
+    if (existing) {
+      throw new BadRequestException({
+        error: 'title_not_available',
+        message: 'This provider already has a product with that name',
+      });
+    }
+  }
+
   private async writeMediaFile(
     productId: string,
     mediaId: string,
@@ -411,4 +459,8 @@ function sniffImageExtension(buffer?: Buffer): string | null {
     return 'webp';
   }
   return null;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
