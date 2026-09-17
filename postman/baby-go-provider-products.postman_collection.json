@@ -1,0 +1,860 @@
+{
+  "info": {
+    "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+    "name": "Baby Go — Provider Products",
+    "description": "Creación y gestión de productos del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (login como `provider`)\n**Store:** 1:1 desde el token — no enviar `storeId`.\n\n**Flujo:** login provider → store creada → GET /products (listar) → POST /products → medias → save.\n\nGET /products y GET /products/:id son del dueño (token). Filtros: ?status= & ?category=\n\n`category` string libre. `attributes` objeto libre (opcional).\nCarpeta **1. Crear** tiene 15 bodies distintos para cargar catálogo de prueba.\nMáx 8 fotos, 5MB, PNG/JPEG/WEBP/GIF. Cloudinary: cada media trae `urls.original|thumbnail|card|detail` + width/height/format/bytes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "mediaId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Ver mis productos",
+      "item": [
+        {
+          "name": "Listar mis productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true,
+                  "description": "draft | active | inactive"
+                },
+                {
+                  "key": "category",
+                  "value": "bike",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista los productos de la store del token. Query opcional: status, category."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener un producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "Detalle de un producto propio. 404 si no existe o no es del provider."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Crear",
+      "item": [
+        {
+          "name": "01. Stroller + oferta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"stroller\",\n  \"title\": \"Maxy-cosi Rainbow\",\n  \"description\": \"Coche hasta 17kg, bassinet y rain coat.\",\n  \"price\": {\n    \"list\": 10,\n    \"offer\": 9,\n    \"activeFrom\": \"25/07/2026\",\n    \"activeUntil\": \"02/09/2026\"\n  },\n  \"attributes\": {\n    \"ageRange\": [\n      0,\n      36\n    ],\n    \"ageRangeUnit\": \"months\",\n    \"maxSupportedWeight\": 12,\n    \"accessories\": [\n      \"chair\",\n      \"bassinet\",\n      \"rain-coat\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            },
+            "description": "Guarda productId. Fechas de oferta DD/MM/YYYY."
+          },
+          "response": []
+        },
+        {
+          "name": "02. Stroller sin oferta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"stroller\",\n  \"title\": \"Bugaboo Fox 5\",\n  \"description\": \"Compacto, máx 22kg, compatible con bassinet.\",\n  \"price\": {\n    \"list\": 14\n  },\n  \"attributes\": {\n    \"ageRange\": [\n      0,\n      4\n    ],\n    \"ageRangeUnit\": \"years\",\n    \"maxSupportedWeight\": 22,\n    \"foldable\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. Bike eléctrica",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"bike\",\n  \"title\": \"City Cruiser Kids\",\n  \"description\": \"Bici urbana liviana, cuadro bajo, asistencia eléctrica.\",\n  \"price\": {\n    \"list\": 15\n  },\n  \"attributes\": {\n    \"wheelSize\": 20,\n    \"type\": \"city\",\n    \"frameType\": \"low\",\n    \"electric\": true,\n    \"rangeKm\": 40\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. Bike sin motor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"bike\",\n  \"title\": \"Mountain Mini 16\",\n  \"description\": \"Bici de montaña para niños, cuadro alto.\",\n  \"price\": {\n    \"list\": 12,\n    \"offer\": 10,\n    \"activeFrom\": \"2026-07-01\",\n    \"activeUntil\": \"2026-08-31\"\n  },\n  \"attributes\": {\n    \"wheelSize\": 16,\n    \"type\": \"mountain\",\n    \"frameType\": \"high\",\n    \"electric\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. Car seat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"car-seat\",\n  \"title\": \"Cybex Cloud T\",\n  \"description\": \"Huevito grupo 0+, isofix.\",\n  \"price\": {\n    \"list\": 18\n  },\n  \"attributes\": {\n    \"group\": \"0+\",\n    \"isofix\": true,\n    \"weightKg\": [\n      0,\n      13\n    ],\n    \"rearFacing\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. Cámara",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"camera\",\n  \"title\": \"Sony A7C II\",\n  \"description\": \"Full-frame compacta, kit 28-60mm.\",\n  \"price\": {\n    \"list\": 45,\n    \"offer\": 39,\n    \"activeFrom\": \"2026-07-01\",\n    \"activeUntil\": \"2026-08-31\"\n  },\n  \"attributes\": {\n    \"brand\": \"Sony\",\n    \"sensor\": \"full-frame\",\n    \"megapixels\": 33,\n    \"includes\": [\n      \"lens\",\n      \"bag\",\n      \"extra-battery\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. Drone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"drone\",\n  \"title\": \"DJI Mini 4 Pro\",\n  \"description\": \"Drone sub-250g, video 4K.\",\n  \"price\": {\n    \"list\": 55\n  },\n  \"attributes\": {\n    \"weightG\": 249,\n    \"flightTimeMin\": 34,\n    \"resolution\": \"4K\",\n    \"licenseRequired\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08. Scooter eléctrico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"scooter\",\n  \"title\": \"Xiaomi Electric Scooter 4\",\n  \"description\": \"Monopatín eléctrico plegable.\",\n  \"price\": {\n    \"list\": 22\n  },\n  \"attributes\": {\n    \"maxSpeedKmh\": 25,\n    \"rangeKm\": 30,\n    \"foldable\": true,\n    \"maxLoadKg\": 100\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09. Kayak",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"kayak\",\n  \"title\": \"Sit-on-top 2 pax\",\n  \"description\": \"Kayak doble para lagos y mar calmo.\",\n  \"price\": {\n    \"list\": 35\n  },\n  \"attributes\": {\n    \"seats\": 2,\n    \"lengthM\": 3.6,\n    \"includesPaddles\": true,\n    \"lifeJackets\": 2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. Surfboard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"surfboard\",\n  \"title\": \"Softboard 7'0\",\n  \"description\": \"Tabla soft para principiantes.\",\n  \"price\": {\n    \"list\": 20\n  },\n  \"attributes\": {\n    \"length\": \"7'0\",\n    \"type\": \"soft\",\n    \"fins\": 3,\n    \"level\": \"beginner\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11. Carpa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"tent\",\n  \"title\": \"Quechua 2 Seconds 3\",\n  \"description\": \"Carpa 3 personas, armado rápido.\",\n  \"price\": {\n    \"list\": 16\n  },\n  \"attributes\": {\n    \"people\": 3,\n    \"season\": 3,\n    \"weightKg\": 3.1,\n    \"waterproof\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "12. Guitarra",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"instrument\",\n  \"title\": \"Yamaha F310\",\n  \"description\": \"Guitarra acústica, funda incluida.\",\n  \"price\": {\n    \"list\": 12\n  },\n  \"attributes\": {\n    \"type\": \"acoustic\",\n    \"strings\": 6,\n    \"includes\": [\n      \"case\",\n      \"picks\",\n      \"tuner\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "13. Taladro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"tool\",\n  \"title\": \"Bosch GSB 18V\",\n  \"description\": \"Taladro percutor a batería.\",\n  \"price\": {\n    \"list\": 18\n  },\n  \"attributes\": {\n    \"voltage\": \"18V\",\n    \"cordless\": true,\n    \"includesBatteries\": 2,\n    \"kit\": [\n      \"charger\",\n      \"bits\",\n      \"case\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "14. Skis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"ski\",\n  \"title\": \"All-mountain 170\",\n  \"description\": \"Set ski + bastones (sin botas).\",\n  \"price\": {\n    \"list\": 40,\n    \"offer\": 32,\n    \"activeFrom\": \"01/12/2026\",\n    \"activeUntil\": \"31/03/2027\"\n  },\n  \"attributes\": {\n    \"lengthCm\": 170,\n    \"level\": \"intermediate\",\n    \"includesBoots\": false,\n    \"includesPoles\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "15. Sin attributes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('productId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"other\",\n  \"title\": \"Item genérico\",\n  \"description\": \"Producto sin atributos extra.\",\n  \"price\": {\n    \"list\": 8\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products"
+              ]
+            },
+            "description": "attributes es opcional."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Medias",
+      "item": [
+        {
+          "name": "2a. Subir media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('mediaId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "media",
+                  "type": "file",
+                  "src": [],
+                  "description": "Seleccioná una imagen (PNG/JPEG/WEBP/GIF, máx 5MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}/medias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}",
+                "medias"
+              ]
+            },
+            "description": "Body → form-data → key `media` tipo **File** (no Text).\nSeleccioná un .jpg/.png. Si ves triángulo amarillo, volvé a elegir el archivo.\nNO pongas header Content-Type a mano (Postman arma el boundary).\nCloudinary. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }` → guarda `mediaId`."
+          },
+          "response": []
+        },
+        {
+          "name": "2b. Reemplazar media",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('mediaId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "media",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}/medias/{{mediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}",
+                "medias",
+                "{{mediaId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2c. Eliminar media",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}/medias/{{mediaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}",
+                "medias",
+                "{{mediaId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Publicar",
+      "item": [
+        {
+          "name": "3. Save product (activar)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}",
+                "save"
+              ]
+            },
+            "description": "Pasa de `draft` → `active`.\nRequiere al menos 1 media; si no → 400 `medias_required`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

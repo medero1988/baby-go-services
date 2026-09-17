@@ -62,5 +62,10 @@ export default (): EnvConfig => {
         process.env.STRIPE_CONNECT_REFRESH_URL ??
         `http://localhost:${port}/api/stripe-connect/refresh`,
     },
+    cloudinary: {
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+      apiKey: process.env.CLOUDINARY_API_KEY ?? '',
+      apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+    },
   };
 };

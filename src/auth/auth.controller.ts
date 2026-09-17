@@ -3,10 +3,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ROUTES } from '../common/constants/api-routes.constants';
 import { AuthService } from './auth.service';
-import {
-  FacebookLoginDto,
-  GoogleLoginDto,
-} from './dto/social-login.dto';
+import { FacebookLoginDto, GoogleLoginDto } from './dto/social-login.dto';
 import {
   CreateAccountDto,
   EmailVerificationDto,

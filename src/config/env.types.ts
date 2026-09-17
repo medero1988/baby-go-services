@@ -63,6 +63,12 @@ export interface StripeConfig {
   connectRefreshUrl: string;
 }
 
+export interface CloudinaryConfig {
+  cloudName: string;
+  apiKey: string;
+  apiSecret: string;
+}
+
 export interface EnvConfig {
   app: AppConfig;
   database: DatabaseConfig;
@@ -70,4 +76,5 @@ export interface EnvConfig {
   mail: MailConfig;
   twilio: TwilioConfig;
   stripe: StripeConfig;
+  cloudinary: CloudinaryConfig;
 }

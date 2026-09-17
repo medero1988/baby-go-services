@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "API store proveedor (base: /api/v1/store).\n\n**Auth obligatorio:** Bearer {{token}} (JWT de login con role `provider`).\nSin token → 401. Con role `client` → 403.\nEl `userId` sale del token, no del body. `GET /store` lista solo las del provider. Las rutas `/:storeId/*` validan ownership.\n\nVariables:\n- `baseUrl`: http://localhost:3000/api\n- `storeId`: id MongoDB de la store\n- `token`: accessToken del login provider\n\nFlujo: login provider → POST profile → … → confirmation.",
+    "description": "API store proveedor (base: /api/v1/store).\n\n**Auth:** Bearer {{token}} (role `provider`).\n**Relación 1:1:** un provider = una store. Se resuelve desde el token; no se pasa `storeId`.\n\nFlujo: login → POST /store/profile → cell → avatar → delivery → bank → confirmation → Connect.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -21,10 +21,6 @@
       "value": "http://localhost:3000/api"
     },
     {
-      "key": "storeId",
-      "value": ""
-    },
-    {
       "key": "token",
       "value": ""
     },
@@ -38,7 +34,7 @@
       "name": "Store",
       "item": [
         {
-          "name": "1. Listar stores",
+          "name": "1. Obtener mi store",
           "request": {
             "method": "GET",
             "header": [],
@@ -46,22 +42,20 @@
               "raw": "{{baseUrl}}/v1/store",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "store"]
-            },
-            "description": "GET todas las stores del provider del token."
+            }
           },
           "response": []
         },
         {
-          "name": "1b. Obtener perfil por id",
+          "name": "1b. Obtener perfil",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/profile",
+              "raw": "{{baseUrl}}/v1/store/profile",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "profile"]
-            },
-            "description": "GET perfil de una store por id (debe pertenecer al usuario autenticado)."
+              "path": ["v1", "store", "profile"]
+            }
           },
           "response": []
         },
@@ -84,7 +78,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "store", "profile"]
             },
-            "description": "Respuesta incluye `id` → copiar a variable `storeId`."
+            "description": "Solo una store por provider. Si ya existe → `store_already_exists`."
           },
           "response": []
         },
@@ -103,11 +97,10 @@
               "raw": "{\n  \"name\": \"Baby Confy Updated\",\n  \"address\": {\n    \"addressLine2\": \"nueva indicacion extra\"\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/profile",
+              "raw": "{{baseUrl}}/v1/store/profile",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "profile"]
-            },
-            "description": "Actualización parcial. Todos los campos son opcionales: name, country, address, cellPhone."
+              "path": ["v1", "store", "profile"]
+            }
           },
           "response": []
         },
@@ -117,11 +110,10 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/cell-verification/resend",
+              "raw": "{{baseUrl}}/v1/store/cell-verification/resend",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "cell-verification", "resend"]
-            },
-            "description": "Envía OTP por WhatsApp (sandbox Twilio, gratis).\n\n**Setup una vez:**\n1. Twilio Console → Messaging → Try it out → Send a WhatsApp message\n2. Desde tu WhatsApp (+569…) mandá al número sandbox el texto `join <código>` que te muestra Twilio\n3. Luego este resend → te llega el código por WhatsApp\n\nRespuesta incluye `channel`, `codeSent`, y en dev `devCode`."
+              "path": ["v1", "store", "cell-verification", "resend"]
+            }
           },
           "response": []
         },
@@ -140,9 +132,9 @@
               "raw": "{\n  \"code\": \"123456\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/cell-verification",
+              "raw": "{{baseUrl}}/v1/store/cell-verification",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "cell-verification"]
+              "path": ["v1", "store", "cell-verification"]
             }
           },
           "response": []
@@ -158,17 +150,16 @@
                 {
                   "key": "avatar",
                   "type": "file",
-                  "src": [],
-                  "description": "Seleccioná una imagen (jpg/png/webp/gif, máx 5MB)"
+                  "src": []
                 }
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/avatar",
+              "raw": "{{baseUrl}}/v1/store/avatar",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "avatar"]
+              "path": ["v1", "store", "avatar"]
             },
-            "description": "Multipart form-data, field `avatar` = File (no Text).\nSi Postman muestra triángulo amarillo en el archivo, volvé a seleccionarlo.\nNo pongas header Content-Type manual (Postman arma el boundary)."
+            "description": "form-data field `avatar` tipo File. Se sube a Cloudinary; `store.avatar` queda con URL HTTPS."
           },
           "response": []
         },
@@ -187,9 +178,9 @@
               "raw": "{\n  \"available\": true,\n  \"timeRanges\": [\n    \"7:30-9:30\",\n    \"12:30-14:00\",\n    \"17:30-19:00\",\n    \"10:00-15:00\"\n  ],\n  \"days\": {\n    \"mon\": [0, 1, 2],\n    \"tue\": [0, 1],\n    \"sat\": [3]\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/delivery",
+              "raw": "{{baseUrl}}/v1/store/delivery",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "delivery"]
+              "path": ["v1", "store", "delivery"]
             }
           },
           "response": []
@@ -209,9 +200,9 @@
               "raw": "{\n  \"available\": true,\n  \"available24h\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/delivery",
+              "raw": "{{baseUrl}}/v1/store/delivery",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "delivery"]
+              "path": ["v1", "store", "delivery"]
             }
           },
           "response": []
@@ -231,11 +222,10 @@
               "raw": "{\n  \"basePrice\": 100,\n  \"priceKm\": 30,\n  \"maxDeliveryDistance\": 30\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/delivery-pricing",
+              "raw": "{{baseUrl}}/v1/store/delivery-pricing",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "delivery-pricing"]
-            },
-            "description": "Precios en centavos. Requiere haber configurado delivery (6a/6b) antes."
+              "path": ["v1", "store", "delivery-pricing"]
+            }
           },
           "response": []
         },
@@ -254,11 +244,10 @@
               "raw": "{\n  \"available\": true,\n  \"timeRanges\": [\n    \"7:30-9:30\",\n    \"12:30-14:00\",\n    \"17:30-19:00\",\n    \"10:00-15:00\"\n  ],\n  \"days\": {\n    \"mon\": [0, 1],\n    \"thu\": [2],\n    \"sat\": [3]\n  }\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/customer-pickup",
+              "raw": "{{baseUrl}}/v1/store/customer-pickup",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "customer-pickup"]
-            },
-            "description": "Máx. 2 intervalos por día. También soporta available24h: true."
+              "path": ["v1", "store", "customer-pickup"]
+            }
           },
           "response": []
         },
@@ -277,11 +266,10 @@
               "raw": "{\n  \"available\": true,\n  \"available24h\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/customer-pickup",
+              "raw": "{{baseUrl}}/v1/store/customer-pickup",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "customer-pickup"]
-            },
-            "description": "Sólo soporta available24h: true."
+              "path": ["v1", "store", "customer-pickup"]
+            }
           },
           "response": []
         },
@@ -300,16 +288,15 @@
               "raw": "{\n  \"accountType\": \"IBAN\",\n  \"firstName\": \"Jhon\",\n  \"lastName\": \"Doe\",\n  \"country\": \"NL\",\n  \"currency\": \"eur\",\n  \"iban\": \"NL91ABNA0417164300\",\n  \"bankName\": \"ABN AMRO\",\n  \"swiftCode\": \"ABNANL2A\",\n  \"address\": \"Seevank 144, Zwanenburg\",\n  \"entityType\": \"individual\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/bank-account",
+              "raw": "{{baseUrl}}/v1/store/bank-account",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "bank-account"]
-            },
-            "description": "Guarda los datos bancarios (payout) de la store y los tokeniza en Stripe.\n\n- `accountType`: `IBAN` (usar campo `iban`) o `NUMBER` (usar campo `accountNumber` + `routingNumber`).\n- No se persiste el IBAN/nro completo: se guarda `last4` + el token de Stripe.\n- Respuesta incluye `bankAccount` y `bankAccountTk` (id de Stripe).\n- Setea `meta.lastSteep = 'bank-account'`.\n\nStripe (test) valida el checksum del IBAN. Usá un IBAN válido de test.\n\nEjemplo US (accountType NUMBER):\n{\n  \"accountType\": \"NUMBER\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"country\": \"US\",\n  \"currency\": \"usd\",\n  \"accountNumber\": \"000123456789\",\n  \"routingNumber\": \"110000000\",\n  \"bankName\": \"STRIPE TEST BANK\"\n}"
+              "path": ["v1", "store", "bank-account"]
+            }
           },
           "response": []
         },
         {
-          "name": "7ab. Confirmación final (Create store)",
+          "name": "7ab. Confirmación final",
           "request": {
             "method": "POST",
             "header": [
@@ -323,11 +310,10 @@
               "raw": "{\n  \"acceptedTerms\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/confirmation",
+              "raw": "{{baseUrl}}/v1/store/confirmation",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "confirmation"]
-            },
-            "description": "Paso final del funnel (botón Create store / Information review).\n\nRequiere:\n- `acceptedTerms: true`\n- celular validado\n- bank-account configurado\n\nResultado:\n- `meta.state` = `pending-review` (revisión Baby Go ~24h)\n- `meta.lastSteep` = `confirmation`\n- `meta.confirmedAt` = ISO timestamp\n\nLa store queda lista para agregar productos; visibles a clientes cuando pase a `active`."
+              "path": ["v1", "store", "confirmation"]
+            }
           },
           "response": []
         },
@@ -346,11 +332,10 @@
               "raw": "{\n  \"returnUrl\": \"http://localhost:3000/api/stripe-connect/return\",\n  \"refreshUrl\": \"http://localhost:3000/api/stripe-connect/refresh\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/stripe-connect/account-link",
+              "raw": "{{baseUrl}}/v1/store/stripe-connect/account-link",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "stripe-connect", "account-link"]
-            },
-            "description": "Crea cuenta Connect Express (si no existe) y devuelve URL de onboarding Stripe.\n\n1. Ejecutá este request → copiá `url` de la respuesta.\n2. Abrí `url` en el browser y completá el onboarding (datos de prueba Stripe).\n3. Ejecutá **7c. sync status** → verificá `stripeConnect.onboardingComplete: true`.\n4. Recién ahí podés crear pagos (colección baby-go-payments).\n\nStripe exige URLs http(s); no acepta deep links (`babygo://`)."
+              "path": ["v1", "store", "stripe-connect", "account-link"]
+            }
           },
           "response": []
         },
@@ -360,53 +345,30 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/stripe-connect/status",
+              "raw": "{{baseUrl}}/v1/store/stripe-connect/status",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "stripe-connect", "status"]
-            },
-            "description": "Sincroniza estado Connect desde Stripe y devuelve perfil store con `stripeConnect`."
+              "path": ["v1", "store", "stripe-connect", "status"]
+            }
           },
           "response": []
         },
         {
-          "name": "7d. Movimientos de pagos (todas las stores)",
+          "name": "7d. Movimientos de pagos",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/store/movements?status=transferred",
+              "raw": "{{baseUrl}}/v1/store/movements",
               "host": ["{{baseUrl}}"],
               "path": ["v1", "store", "movements"],
               "query": [
                 {
                   "key": "status",
                   "value": "transferred",
-                  "description": "Opcional. Filtra por estado del pago (succeeded, transferred, etc.).",
-                  "disabled": true
-                },
-                {
-                  "key": "storeId",
-                  "value": "{{storeId}}",
-                  "description": "Opcional. Filtra por una store puntual.",
                   "disabled": true
                 }
               ]
-            },
-            "description": "Movimientos de pagos de todas las stores del proveedor autenticado.\n\nDevuelve `summary` (cobrado, ganancias transferidas, pendientes y comisión de la plataforma) + `movements` (detalle por pago).\n\nFiltros opcionales por query: `status`, `storeId`."
-          },
-          "response": []
-        },
-        {
-          "name": "7e. Movimientos de pagos (store puntual)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}/movements",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}", "movements"]
-            },
-            "description": "Movimientos de pagos de una store puntual del proveedor. Acepta `?status=` opcional."
+            }
           },
           "response": []
         },
@@ -416,9 +378,9 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/store/{{storeId}}",
+              "raw": "{{baseUrl}}/v1/store",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "{{storeId}}"]
+              "path": ["v1", "store"]
             }
           },
           "response": []

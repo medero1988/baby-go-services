@@ -185,7 +185,7 @@ export class PaymentService {
    */
   async getProviderMovements(
     providerUserId: string,
-    query: ProviderMovementsQueryDto,
+    query: ProviderMovementsQueryDto & { storeId?: string },
   ): Promise<ProviderMovementsResponse> {
     // Las referencias (userId/storeId) pueden estar guardadas como string u
     // ObjectId; comparamos por su forma string con $toString para ser robustos.

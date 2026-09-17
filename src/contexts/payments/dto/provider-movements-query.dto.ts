@@ -1,4 +1,4 @@
-import { IsIn, IsMongoId, IsOptional } from 'class-validator';
+import { IsIn, IsOptional } from 'class-validator';
 import { PaymentStatus } from '../payment.types';
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
@@ -14,11 +14,6 @@ const PAYMENT_STATUSES: PaymentStatus[] = [
 ];
 
 export class ProviderMovementsQueryDto {
-  /** Filtra por una store puntual (debe pertenecer al proveedor). */
-  @IsOptional()
-  @IsMongoId()
-  storeId?: string;
-
   /** Filtra por estado del pago. */
   @IsOptional()
   @IsIn(PAYMENT_STATUSES)

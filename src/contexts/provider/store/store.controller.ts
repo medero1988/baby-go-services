@@ -2,19 +2,15 @@ import {
   Body,
   Controller,
   Get,
-  BadRequestException,
   Post,
   Patch,
   Query,
-  Param,
   Delete,
   UploadedFile,
   UseInterceptors,
-  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
-import { Types } from 'mongoose';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { ROUTES } from '../../../common/constants/api-routes.constants';
 import type { AuthUser } from '../../../auth/auth-user';
@@ -36,9 +32,8 @@ import { PaymentService } from '../../payments/payment.service';
 import { StoreService } from './store.service';
 
 /**
- * Store APIs del provider.
- * Requieren Bearer JWT
- * El `userId` sale del token (`user.id`); las rutas con `:id` validan ownership.
+ * Store APIs del provider (relación 1:1).
+ * Bearer JWT + role `provider`. La store se resuelve siempre desde el token.
  */
 @Controller(`${ROUTES.PROVIDER}/store`)
 export class StoreController {
@@ -48,27 +43,28 @@ export class StoreController {
     private readonly paymentService: PaymentService,
   ) {}
 
-  private parseStoreId(id: string): string {
-    const storeId = String(id).trim();
-    if (!Types.ObjectId.isValid(storeId)) {
-      throw new BadRequestException({ error: 'invalid_store_id' });
-    }
-    return storeId;
-  }
-
-  /** Stores del provider autenticado. */
+  /** Store del provider autenticado. */
   @Get()
-  getMyStores(@CurrentUser() user: AuthUser) {
-    return this.storeService.findAllByOwner(user.id);
+  getMyStore(@CurrentUser() user: AuthUser) {
+    return this.storeService.findByOwner(user.id);
   }
 
-  /** Movimientos de pagos de todas las stores del proveedor. */
+  @Get('/profile')
+  getStoreProfile(@CurrentUser() user: AuthUser) {
+    return this.storeService.findByOwner(user.id);
+  }
+
+  /** Movimientos de pagos de la store del proveedor. */
   @Get('/movements')
-  getProviderMovements(
+  async getProviderMovements(
     @Query() query: ProviderMovementsQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.paymentService.getProviderMovements(user.id, query);
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.paymentService.getProviderMovements(user.id, {
+      ...query,
+      storeId,
+    });
   }
 
   @Post('profile')
@@ -83,62 +79,31 @@ export class StoreController {
     );
   }
 
-  @Get('/:id/movements')
-  getStoreMovements(
-    @Param('id') id: string,
-    @Query() query: ProviderMovementsQueryDto,
-    @CurrentUser() user: AuthUser,
-  ) {
-    const storeId = this.parseStoreId(id);
-    return this.paymentService.getProviderMovements(user.id, {
-      ...query,
-      storeId,
-    });
-  }
-
-  @Get('/:id/profile')
-  getStoreProfile(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.storeService.findOneById(this.parseStoreId(id), user.id);
-  }
-
-  @Patch('/:id/profile')
+  @Patch('/profile')
   async updateStoreProfile(
-    @Param('id') id: string,
     @Body() body: UpdateStoreProfileDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.updateProfile(
-      this.parseStoreId(id),
-      user.id,
-      body,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.updateProfile(storeId, user.id, body);
   }
 
-  @Post('/:id/cell-verification')
+  @Post('/cell-verification')
   async validateCellCode(
     @Body() body: CellVerificationDto,
-    @Param('id') id: string,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.validateCellCode(
-      this.parseStoreId(id),
-      user.id,
-      body.code,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.validateCellCode(storeId, user.id, body.code);
   }
 
-  @Post('/:id/cell-verification/resend')
-  async resendCellVerificationCode(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
-    return this.storeService.sendCellVerificationCode(
-      this.parseStoreId(id),
-      user.id,
-    );
+  @Post('/cell-verification/resend')
+  async resendCellVerificationCode(@CurrentUser() user: AuthUser) {
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.sendCellVerificationCode(storeId, user.id);
   }
 
-  @Post('/:id/avatar')
+  @Post('/avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: multer.memoryStorage(),
@@ -146,99 +111,77 @@ export class StoreController {
     }),
   )
   async uploadAvatar(
-    @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.uploadAvatar(this.parseStoreId(id), user.id, file);
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.uploadAvatar(storeId, user.id, file);
   }
 
-  @Post('/:id/delivery')
+  @Post('/delivery')
   async updateDelivery(
-    @Param('id') id: string,
     @Body() body: UpdateDeliveryDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.updateDelivery(
-      this.parseStoreId(id),
-      user.id,
-      body,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.updateDelivery(storeId, user.id, body);
   }
 
-  @Post('/:id/delivery-pricing')
+  @Post('/delivery-pricing')
   async updateDeliveryPricing(
-    @Param('id') id: string,
     @Body() body: UpdateDeliveryPricingDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.updateDeliveryPricing(
-      this.parseStoreId(id),
-      user.id,
-      body,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.updateDeliveryPricing(storeId, user.id, body);
   }
 
-  @Post('/:id/customer-pickup')
+  @Post('/customer-pickup')
   async updateCustomerPickup(
-    @Param('id') id: string,
     @Body() body: UpdateCustomerPickupDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.updateCustomerPickup(
-      this.parseStoreId(id),
-      user.id,
-      body,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.updateCustomerPickup(storeId, user.id, body);
   }
 
-  @Post('/:id/bank-account')
+  @Post('/bank-account')
   async updateBankAccount(
-    @Param('id') id: string,
     @Body() body: UpdateBankAccountDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.updateBankAccount(
-      this.parseStoreId(id),
-      user.id,
-      body,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.updateBankAccount(storeId, user.id, body);
   }
 
-  @Post('/:id/confirmation')
+  @Post('/confirmation')
   async confirmStore(
-    @Param('id') id: string,
     @Body() body: ConfirmStoreDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.storeService.confirmStore(this.parseStoreId(id), user.id, body);
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.confirmStore(storeId, user.id, body);
   }
 
-  @Post('/:id/stripe-connect/account-link')
-  createStripeAccountLink(
-    @Param('id') id: string,
+  @Post('/stripe-connect/account-link')
+  async createStripeAccountLink(
     @Body() body: CreateStripeAccountLinkDto,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.stripeConnectService.createAccountLink(
-      this.parseStoreId(id),
-      user.id,
-      body,
-    );
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.stripeConnectService.createAccountLink(storeId, user.id, body);
   }
 
-  @Get('/:id/stripe-connect/status')
-  async syncStripeConnectStatus(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthUser,
-  ) {
-    const storeId = this.parseStoreId(id);
+  @Get('/stripe-connect/status')
+  async syncStripeConnectStatus(@CurrentUser() user: AuthUser) {
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
     await this.stripeConnectService.syncConnectStatus(storeId, user.id);
-    return this.storeService.findOneById(storeId, user.id);
+    return this.storeService.findByOwner(user.id);
   }
 
-  @Delete('/:id')
-  async deleteStore(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.storeService.remove(this.parseStoreId(id), user.id);
+  @Delete()
+  async deleteStore(@CurrentUser() user: AuthUser) {
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.remove(storeId, user.id);
   }
 }
