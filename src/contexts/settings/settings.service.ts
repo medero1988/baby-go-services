@@ -10,10 +10,13 @@ import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { Settings, SettingsDocument } from './settings.schema';
 import {
   DEFAULT_SUPPORTED_COUNTRIES,
+  PRODUCT_TAXONOMY_CODE,
   SettingListResponse,
   SettingResponse,
+  SettingValue,
   SUPPORTED_COUNTRIES_CODE,
 } from './settings.types';
+import DEFAULT_PRODUCT_TAXONOMY from './seeds/product-taxonomy.json';
 
 export const SETTINGS_ERRORS = {
   NOT_FOUND: 'settings_not_found',
@@ -77,8 +80,8 @@ export class SettingsService {
   }
 
   /**
-   * Migra el singleton viejo (supportedCountries) y asegura el code
-   * `supported-countries`.
+   * Migra el singleton viejo (supportedCountries) y asegura los codes
+   * `supported-countries` y `product-taxonomy` si no existen.
    */
   async seed(): Promise<void> {
     const legacy = await this.settingsModel
@@ -93,28 +96,25 @@ export class SettingsService {
       const countries =
         (legacy as { supportedCountries?: unknown }).supportedCountries ??
         DEFAULT_SUPPORTED_COUNTRIES;
-      await this.settingsModel.updateOne(
-        { code: SUPPORTED_COUNTRIES_CODE },
-        {
-          $setOnInsert: {
-            code: SUPPORTED_COUNTRIES_CODE,
-            value: countries,
-          },
-        },
-        { upsert: true },
-      );
+      await this.ensureSetting(SUPPORTED_COUNTRIES_CODE, countries as SettingValue);
       await this.settingsModel.deleteOne({ _id: legacy._id }).exec();
     }
 
+    await this.ensureSetting(
+      SUPPORTED_COUNTRIES_CODE,
+      DEFAULT_SUPPORTED_COUNTRIES,
+    );
+    await this.ensureSetting(
+      PRODUCT_TAXONOMY_CODE,
+      DEFAULT_PRODUCT_TAXONOMY as SettingValue,
+    );
+  }
+
+  private async ensureSetting(code: string, value: SettingValue): Promise<void> {
     await this.settingsModel
       .updateOne(
-        { code: SUPPORTED_COUNTRIES_CODE },
-        {
-          $setOnInsert: {
-            code: SUPPORTED_COUNTRIES_CODE,
-            value: DEFAULT_SUPPORTED_COUNTRIES,
-          },
-        },
+        { code },
+        { $setOnInsert: { code, value } },
         { upsert: true },
       )
       .exec();

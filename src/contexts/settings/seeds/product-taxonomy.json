@@ -1,0 +1,494 @@
+{
+  "families": [
+    {
+      "id": "mobility",
+      "label": "Movilidad",
+      "description": "Cochecitos, sistemas de viaje y bicis.",
+      "categories": [
+        {
+          "id": "stroller",
+          "label": "Cochecitos",
+          "attributes": [
+            {
+              "key": "ageRange",
+              "label": "Rango de edad",
+              "type": "range",
+              "required": true,
+              "min": 0,
+              "max": 72,
+              "step": 1
+            },
+            {
+              "key": "ageRangeUnit",
+              "label": "Unidad de edad",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "months", "label": "Meses" },
+                { "value": "years", "label": "Años" }
+              ]
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "required": true,
+              "unit": "kg",
+              "min": 1,
+              "max": 40
+            },
+            {
+              "key": "foldable",
+              "label": "Plegable",
+              "type": "boolean"
+            },
+            {
+              "key": "accessories",
+              "label": "Accesorios",
+              "type": "multi",
+              "options": [
+                { "value": "bassinet", "label": "Capazo" },
+                { "value": "rain-coat", "label": "Plástico de lluvia" },
+                { "value": "chair", "label": "Silla extra" },
+                { "value": "cup-holder", "label": "Portavasos" },
+                { "value": "mosquito-net", "label": "Mosquitero" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "travel-system",
+          "label": "Travel system",
+          "attributes": [
+            {
+              "key": "includesCarSeat",
+              "label": "Incluye silla de auto",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "ageRange",
+              "label": "Rango de edad",
+              "type": "range",
+              "required": true,
+              "min": 0,
+              "max": 48
+            },
+            {
+              "key": "ageRangeUnit",
+              "label": "Unidad de edad",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "months", "label": "Meses" },
+                { "value": "years", "label": "Años" }
+              ]
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "unit": "kg",
+              "min": 1,
+              "max": 22
+            }
+          ]
+        },
+        {
+          "id": "bike",
+          "label": "Bicis",
+          "attributes": [
+            {
+              "key": "type",
+              "label": "Tipo",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "city", "label": "Urbana" },
+                { "value": "mountain", "label": "Montaña" },
+                { "value": "kids", "label": "Infantil" },
+                { "value": "balance", "label": "Sin pedales" }
+              ]
+            },
+            {
+              "key": "wheelSize",
+              "label": "Rodado",
+              "type": "number",
+              "required": true,
+              "unit": "\"",
+              "min": 12,
+              "max": 29
+            },
+            {
+              "key": "frameType",
+              "label": "Cuadro",
+              "type": "select",
+              "options": [
+                { "value": "low", "label": "Bajo" },
+                { "value": "standard", "label": "Estándar" },
+                { "value": "folding", "label": "Plegable" }
+              ]
+            },
+            {
+              "key": "electric",
+              "label": "Eléctrica",
+              "type": "boolean"
+            },
+            {
+              "key": "rangeKm",
+              "label": "Autonomía",
+              "type": "number",
+              "unit": "km",
+              "min": 0,
+              "max": 150,
+              "hint": "Solo si es eléctrica."
+            }
+          ]
+        },
+        {
+          "id": "cargo-bike",
+          "label": "Bicis cargo",
+          "attributes": [
+            {
+              "key": "childSeats",
+              "label": "Asientos para niños",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "max": 4
+            },
+            {
+              "key": "electric",
+              "label": "Eléctrica",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "boxType",
+              "label": "Tipo de caja",
+              "type": "select",
+              "options": [
+                { "value": "front", "label": "Delantera" },
+                { "value": "rear", "label": "Trasera" },
+                { "value": "longtail", "label": "Longtail" }
+              ]
+            },
+            {
+              "key": "rainCover",
+              "label": "Cubrelluvia",
+              "type": "boolean"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "car",
+      "label": "Auto",
+      "description": "Sillas y boosters para el auto.",
+      "categories": [
+        {
+          "id": "car-seat",
+          "label": "Sillas de auto",
+          "attributes": [
+            {
+              "key": "eceGroup",
+              "label": "Grupo ECE",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "0+", "label": "0+ (0–13 kg)" },
+                { "value": "1", "label": "1 (9–18 kg)" },
+                { "value": "2-3", "label": "2/3 (15–36 kg)" },
+                { "value": "0-1", "label": "0/1" }
+              ]
+            },
+            {
+              "key": "ageRange",
+              "label": "Rango de edad",
+              "type": "range",
+              "required": true,
+              "min": 0,
+              "max": 144
+            },
+            {
+              "key": "ageRangeUnit",
+              "label": "Unidad de edad",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "months", "label": "Meses" },
+                { "value": "years", "label": "Años" }
+              ]
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "required": true,
+              "unit": "kg",
+              "min": 1,
+              "max": 36
+            },
+            {
+              "key": "isofix",
+              "label": "ISOFIX",
+              "type": "boolean"
+            },
+            {
+              "key": "orientation",
+              "label": "Orientación",
+              "type": "select",
+              "options": [
+                { "value": "rear", "label": "A contramarcha" },
+                { "value": "forward", "label": "A favor de marcha" },
+                { "value": "both", "label": "Ambas" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "booster",
+          "label": "Boosters",
+          "attributes": [
+            {
+              "key": "withBackrest",
+              "label": "Con respaldo",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "required": true,
+              "unit": "kg",
+              "min": 15,
+              "max": 36
+            },
+            {
+              "key": "isofix",
+              "label": "ISOFIX",
+              "type": "boolean"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sleep",
+      "label": "Sueño",
+      "description": "Cunas, moisés y cunas de viaje.",
+      "categories": [
+        {
+          "id": "crib",
+          "label": "Cunas",
+          "attributes": [
+            {
+              "key": "size",
+              "label": "Medida",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "60x120", "label": "60 × 120" },
+                { "value": "70x140", "label": "70 × 140" },
+                { "value": "other", "label": "Otra" }
+              ]
+            },
+            {
+              "key": "adjustableHeight",
+              "label": "Altura regulable",
+              "type": "boolean"
+            },
+            {
+              "key": "includesMattress",
+              "label": "Incluye colchón",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "ageRange",
+              "label": "Rango de edad",
+              "type": "range",
+              "min": 0,
+              "max": 36
+            },
+            {
+              "key": "ageRangeUnit",
+              "label": "Unidad de edad",
+              "type": "select",
+              "options": [
+                { "value": "months", "label": "Meses" },
+                { "value": "years", "label": "Años" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "travel-cot",
+          "label": "Cunas de viaje",
+          "attributes": [
+            {
+              "key": "foldable",
+              "label": "Plegable",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "includesBag",
+              "label": "Incluye bolsa",
+              "type": "boolean"
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "unit": "kg",
+              "min": 1,
+              "max": 20
+            }
+          ]
+        },
+        {
+          "id": "bassinet",
+          "label": "Moisés / capazo",
+          "attributes": [
+            {
+              "key": "compatibleStroller",
+              "label": "Compatible con cochecito",
+              "type": "boolean"
+            },
+            {
+              "key": "ageRange",
+              "label": "Rango de edad",
+              "type": "range",
+              "min": 0,
+              "max": 6
+            },
+            {
+              "key": "ageRangeUnit",
+              "label": "Unidad de edad",
+              "type": "select",
+              "options": [
+                { "value": "months", "label": "Meses" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "feeding",
+      "label": "Alimentación",
+      "description": "Tronas y accesorios de comida.",
+      "categories": [
+        {
+          "id": "high-chair",
+          "label": "Tronas",
+          "attributes": [
+            {
+              "key": "foldable",
+              "label": "Plegable",
+              "type": "boolean"
+            },
+            {
+              "key": "adjustableHeight",
+              "label": "Altura regulable",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "hasTray",
+              "label": "Bandeja",
+              "type": "boolean"
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "unit": "kg",
+              "min": 5,
+              "max": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "carry",
+      "label": "Porteo",
+      "description": "Mochilas y fulares.",
+      "categories": [
+        {
+          "id": "carrier",
+          "label": "Portabebés",
+          "attributes": [
+            {
+              "key": "style",
+              "label": "Estilo",
+              "type": "select",
+              "required": true,
+              "options": [
+                { "value": "soft-structured", "label": "Mochila SSC" },
+                { "value": "wrap", "label": "Fular" },
+                { "value": "ring-sling", "label": "Bandolera" },
+                { "value": "mei-tai", "label": "Mei-tai" }
+              ]
+            },
+            {
+              "key": "positions",
+              "label": "Posiciones",
+              "type": "multi",
+              "options": [
+                { "value": "front", "label": "Delante" },
+                { "value": "back", "label": "Espalda" },
+                { "value": "hip", "label": "Cadera" }
+              ]
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "required": true,
+              "unit": "kg",
+              "min": 3,
+              "max": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "label": "Juego",
+      "description": "Parques y entretenimiento.",
+      "categories": [
+        {
+          "id": "playpen",
+          "label": "Parques",
+          "attributes": [
+            {
+              "key": "foldable",
+              "label": "Plegable",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "key": "includesMat",
+              "label": "Incluye colchoneta",
+              "type": "boolean"
+            },
+            {
+              "key": "maxSupportedWeight",
+              "label": "Peso máximo",
+              "type": "number",
+              "unit": "kg",
+              "min": 5,
+              "max": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

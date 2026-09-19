@@ -9,6 +9,6 @@ export class SettingsSeeder implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     await this.settingsService.seed();
-    this.logger.log('Settings ready (supported-countries)');
+    this.logger.log('Settings ready (supported-countries, product-taxonomy)');
   }
 }

@@ -18,6 +18,7 @@ export interface SupportedCountry {
 }
 
 export const SUPPORTED_COUNTRIES_CODE = 'supported-countries';
+export const PRODUCT_TAXONOMY_CODE = 'product-taxonomy';
 
 /** Semilla de `supported-countries` si no existe. */
 export const DEFAULT_SUPPORTED_COUNTRIES: SupportedCountry[] = [

@@ -49,14 +49,15 @@ Errores: `email_already_registered`, `invalid_credentials`, `email_not_verified`
 
 ## Settings `/v1/settings`
 
-Documentos `{ code, value }` (JSON libre). El seeder crea `supported-countries`.
+Documentos `{ code, value }` (JSON libre). El seeder crea `supported-countries` y `product-taxonomy`.
 
 - `GET /v1/settings` público → `{ items: [{ id, code, value, createdAt, updatedAt }] }`
 - `GET /v1/settings/:code` público → un setting. 404 `settings_not_found`
 - `POST /v1/settings` JWT → `{ code, value }`. 409 `settings_code_exists`
 - `PATCH /v1/settings/:code` JWT → `{ value }` (reemplaza el JSON)
 
-Países: `GET /v1/settings/supported-countries` → `value: [{ code, phoneCode }]`.
+Países: `GET /v1/settings/supported-countries` → `value: [{ code, phoneCode }]`.  
+Catálogo de productos: `GET /v1/settings/product-taxonomy` → `value: { families: [{ id, label, description, categories: [{ id, label, attributes }] }] }`. El front arma el alta de producto con ese JSON. Para cambiar familias/categorías/atributos: `PATCH /v1/settings/product-taxonomy` con el `value` completo.
 
 ---
 

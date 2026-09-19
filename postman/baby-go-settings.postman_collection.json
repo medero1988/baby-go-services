@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "d4e5f6a7-b8c9-0123-def0-345678901234",
     "name": "Baby Go — Settings",
-    "description": "Settings por `code` + JSON.\n\n**GET /v1/settings** público → `{ items: [{ id, code, value, createdAt, updatedAt }] }`\n**GET /v1/settings/:code** público → un documento. 404 `settings_not_found`.\n**POST /v1/settings** JWT → `{ code, value }`. 409 `settings_code_exists`.\n**PATCH /v1/settings/:code** JWT → `{ value }` reemplaza el JSON.\n\nEl seeder crea `supported-countries` (array `{ code, phoneCode }`).\n`code`: empieza con letra, letras/números/_/- , se guarda lowercase.",
+    "description": "Settings por `code` + JSON.\n\n**GET /v1/settings** público → `{ items: [{ id, code, value, createdAt, updatedAt }] }`\n**GET /v1/settings/:code** público → un documento. 404 `settings_not_found`.\n**POST /v1/settings** JWT → `{ code, value }`. 409 `settings_code_exists`.\n**PATCH /v1/settings/:code** JWT → `{ value }` reemplaza el JSON.\n\nEl seeder crea `supported-countries` (array `{ code, phoneCode }`) y `product-taxonomy` (`{ families: [...] }`).\n`code`: empieza con letra, letras/números/_/- , se guarda lowercase.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -27,6 +27,10 @@
     {
       "key": "settingCode",
       "value": "supported-countries"
+    },
+    {
+      "key": "productTaxonomyCode",
+      "value": "product-taxonomy"
     }
   ],
   "item": [
@@ -59,7 +63,22 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "settings", "{{settingCode}}"]
             },
-            "description": "Público. Ej. `supported-countries` → `{ code, value: [{ code, phoneCode }] }`. 404 `settings_not_found`."
+            "description": "Público. Ej. `supported-countries` → `{ code, value: [{ code, phoneCode }] }` o `product-taxonomy`. 404 `settings_not_found`."
+          },
+          "response": []
+        },
+        {
+          "name": "2b. Get product-taxonomy (público)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/{{productTaxonomyCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings", "{{productTaxonomyCode}}"]
+            },
+            "description": "Público. `value.families[]` con categorías y atributos para el form dinámico de productos."
           },
           "response": []
         },
@@ -110,6 +129,29 @@
           "response": []
         },
         {
+          "name": "3c. Crear product-taxonomy (si no hay seeder)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"product-taxonomy\",\n  \"value\": {\n    \"families\": [\n      {\n        \"id\": \"mobility\",\n        \"label\": \"Movilidad\",\n        \"description\": \"Cochecitos, sistemas de viaje y bicis.\",\n        \"categories\": [\n          {\n            \"id\": \"stroller\",\n            \"label\": \"Cochecitos\",\n            \"attributes\": [\n              {\n                \"key\": \"ageRange\",\n                \"label\": \"Rango de edad\",\n                \"type\": \"range\",\n                \"required\": true,\n                \"min\": 0,\n                \"max\": 72\n              },\n              {\n                \"key\": \"foldable\",\n                \"label\": \"Plegable\",\n                \"type\": \"boolean\"\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings"]
+            },
+            "description": "Bearer. El seeder ya crea el JSON completo. Si existe → 409. Para reemplazar usá PATCH."
+          },
+          "response": []
+        },
+        {
           "name": "4. Patch setting (JWT)",
           "request": {
             "method": "PATCH",
@@ -129,6 +171,29 @@
               "path": ["v1", "settings", "{{settingCode}}"]
             },
             "description": "Bearer. Reemplaza `value` completo del code. 404 `settings_not_found`."
+          },
+          "response": []
+        },
+        {
+          "name": "4b. Patch product-taxonomy (JWT)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": {\n    \"families\": [\n      {\n        \"id\": \"mobility\",\n        \"label\": \"Movilidad\",\n        \"description\": \"Cochecitos, sistemas de viaje y bicis.\",\n        \"categories\": [\n          {\n            \"id\": \"stroller\",\n            \"label\": \"Cochecitos\",\n            \"attributes\": [\n              {\n                \"key\": \"ageRange\",\n                \"label\": \"Rango de edad\",\n                \"type\": \"range\",\n                \"required\": true,\n                \"min\": 0,\n                \"max\": 72\n              },\n              {\n                \"key\": \"foldable\",\n                \"label\": \"Plegable\",\n                \"type\": \"boolean\"\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/{{productTaxonomyCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings", "{{productTaxonomyCode}}"]
+            },
+            "description": "Bearer. Reemplaza el JSON de familias/categorías/atributos. El front lee este value en el alta de producto."
           },
           "response": []
         }
