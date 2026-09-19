@@ -8,8 +8,13 @@ import { Model, Types } from 'mongoose';
 import { StorageService } from '../../../shared/storage/storage.service';
 import { StoreService } from '../store/store.service';
 import { CreateProductDto } from './dto/create-product.dto';
+import {
+  UpdateProductDto,
+  UpdateProductPriceDto,
+} from './dto/update-product.dto';
 import { Product, ProductDocument, ProductMedia } from './product.schema';
 import {
+  ProductAttributes,
   ProductListResponse,
   ProductMediaResponse,
   ProductPrice,
@@ -55,6 +60,57 @@ export class ProductService {
       status: 'draft',
     });
 
+    return this.toResponse(product.toObject() as ProductDocument);
+  }
+
+  /**
+   * PATCH parcial de un producto propio.
+   * Si el resultado queda `active`, se revalida completitud.
+   */
+  async update(
+    productId: string,
+    userId: string,
+    dto: UpdateProductDto,
+  ): Promise<ProductResponse> {
+    const product = await this.requireOwnedProduct(productId, userId);
+
+    if (!hasPatchFields(dto)) {
+      throw new BadRequestException({ error: 'no_fields_to_update' });
+    }
+
+    if (dto.category !== undefined) {
+      product.category = dto.category.trim().toLowerCase();
+    }
+
+    if (dto.title !== undefined) {
+      const title = dto.title.trim();
+      await this.assertTitleAvailable(userId, title, productId);
+      product.title = title;
+    }
+
+    if (dto.description !== undefined) {
+      product.description = dto.description.trim();
+    }
+
+    if (dto.price !== undefined && hasPricePatch(dto.price)) {
+      product.price = mergePrice(product.price, dto.price);
+      product.markModified('price');
+    }
+
+    if (dto.attributes !== undefined) {
+      product.attributes = mergeAttributes(product.attributes, dto.attributes);
+      product.markModified('attributes');
+    }
+
+    if (dto.status !== undefined) {
+      product.status = dto.status;
+    }
+
+    if (product.status === 'active') {
+      this.assertReadyToActivate(product);
+    }
+
+    await product.save();
     return this.toResponse(product.toObject() as ProductDocument);
   }
 
@@ -258,18 +314,51 @@ export class ProductService {
     return { success: true };
   }
 
-  /** Save product: draft → active si hay al menos una foto. */
+  /**
+   * Save product: draft → active.
+   * Requiere título, descripción, categoría, precio, attributes y ≥1 media.
+   */
   async save(productId: string, userId: string): Promise<ProductResponse> {
     const product = await this.requireOwnedProduct(productId, userId);
-    if (!product.medias?.length) {
-      throw new BadRequestException({
-        error: 'medias_required',
-        message: 'Add at least one photo before saving',
-      });
-    }
+    this.assertReadyToActivate(product);
     product.status = 'active';
     await product.save();
     return this.toResponse(product.toObject() as ProductDocument);
+  }
+
+  private assertReadyToActivate(product: ProductDocument): void {
+    const missing: string[] = [];
+
+    if (!product.title?.trim()) missing.push('title');
+    if (!product.description?.trim()) missing.push('description');
+    if (!product.category?.trim()) missing.push('category');
+
+    const list = product.price?.list;
+    if (typeof list !== 'number' || !Number.isFinite(list) || list <= 0) {
+      missing.push('price');
+    }
+
+    if (!hasMeaningfulAttributes(product.attributes)) {
+      missing.push('attributes');
+    }
+
+    const medias = (product.medias ?? []).filter((m) => m.url?.trim());
+    if (!medias.length) {
+      missing.push('medias');
+    }
+
+    if (missing.length) {
+      throw new BadRequestException({
+        error: 'product_incomplete',
+        missing,
+        message:
+          'Complete title, description, category, price, attributes and at least one photo before activating',
+      });
+    }
+
+    if (product.price?.offer !== undefined) {
+      normalizePrice(product.price);
+    }
   }
 
   private async requireOwnedProduct(
@@ -348,7 +437,12 @@ export class ProductService {
   }
 }
 
-function normalizePrice(dto: CreateProductDto['price']): ProductPrice {
+function normalizePrice(dto: {
+  list: number;
+  offer?: number;
+  activeFrom?: string;
+  activeUntil?: string;
+}): ProductPrice {
   if (dto.offer !== undefined && dto.offer > dto.list) {
     throw new BadRequestException({
       error: 'invalid_offer_price',
@@ -463,4 +557,104 @@ function sniffImageExtension(buffer?: Buffer): string | null {
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasPatchFields(dto: UpdateProductDto): boolean {
+  return (
+    dto.category !== undefined ||
+    dto.title !== undefined ||
+    dto.description !== undefined ||
+    (dto.price !== undefined && hasPricePatch(dto.price)) ||
+    dto.attributes !== undefined ||
+    dto.status !== undefined
+  );
+}
+
+function hasPricePatch(patch: UpdateProductPriceDto): boolean {
+  return (
+    patch.list !== undefined ||
+    patch.offer !== undefined ||
+    patch.activeFrom !== undefined ||
+    patch.activeUntil !== undefined
+  );
+}
+
+function mergePrice(
+  current: ProductPrice | undefined,
+  patch: UpdateProductPriceDto,
+): ProductPrice {
+  const list = patch.list ?? current?.list;
+  if (typeof list !== 'number' || !Number.isFinite(list)) {
+    throw new BadRequestException({
+      error: 'price_required',
+      message: 'price.list is required',
+    });
+  }
+
+  if (patch.offer === null) {
+    return { list };
+  }
+
+  const merged: {
+    list: number;
+    offer?: number;
+    activeFrom?: string;
+    activeUntil?: string;
+  } = { list };
+
+  const offer = patch.offer ?? current?.offer;
+  if (offer !== undefined) {
+    merged.offer = offer;
+    merged.activeFrom = patch.activeFrom ?? current?.activeFrom;
+    merged.activeUntil = patch.activeUntil ?? current?.activeUntil;
+  }
+
+  return normalizePrice(merged);
+}
+
+function mergeAttributes(
+  current: ProductAttributes | undefined,
+  patch: ProductAttributes,
+): ProductAttributes {
+  const next: ProductAttributes = { ...(current ?? {}) };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+  }
+  return next;
+}
+
+function hasMeaningfulAttributes(
+  attributes: Record<string, unknown> | undefined,
+): boolean {
+  if (
+    !attributes ||
+    typeof attributes !== 'object' ||
+    Array.isArray(attributes)
+  ) {
+    return false;
+  }
+
+  return Object.values(attributes).some((value) =>
+    isMeaningfulAttribute(value),
+  );
+}
+
+function isMeaningfulAttribute(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'boolean') return true;
+  if (Array.isArray(value)) {
+    return value.some((item) => isMeaningfulAttribute(item));
+  }
+  if (typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).some((item) =>
+      isMeaningfulAttribute(item),
+    );
+  }
+  return false;
 }

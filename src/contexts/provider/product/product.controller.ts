@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -22,6 +23,7 @@ import { ROUTES } from '../../../common/constants/api-routes.constants';
 import type { AuthUser } from '../../../auth/auth-user';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
 
 const MEDIA_UPLOAD = {
@@ -71,6 +73,20 @@ export class ProductController {
   @Post()
   create(@Body() body: CreateProductDto, @CurrentUser() user: AuthUser) {
     return this.productService.create(user.id, body);
+  }
+
+  /** PATCH parcial: title, description, category, price, attributes, status. */
+  @Patch('/:id')
+  update(
+    @Param('id') id: string,
+    @Body() body: UpdateProductDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.productService.update(
+      this.parseId(id, 'invalid_product_id'),
+      user.id,
+      body,
+    );
   }
 
   /** Subir foto (multipart; field `media`, `file`, `image` o `photo`). */
@@ -124,7 +140,7 @@ export class ProductController {
 
   /**
    * Save product (pantalla Photos del Miro).
-   * Requiere ≥1 media → status `active`.
+   * Requiere título, descripción, categoría, precio, attributes y ≥1 media → `active`.
    */
   @Post('/:id/save')
   save(@Param('id') id: string, @CurrentUser() user: AuthUser) {

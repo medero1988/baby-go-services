@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
     "name": "Baby Go — Provider Products",
-    "description": "Creación y gestión de productos del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (login como `provider`)\n**Store:** 1:1 desde el token — no enviar `storeId`.\n\n**Flujo:** login provider → store creada → GET /products (listar) → POST /products → medias → save.\n\nGET /products y GET /products/:id son del dueño (token). Filtros: ?status= & ?category= & ?page= & ?limit= (default page=1, limit=20, máx 100). Respuesta `{ items, page, limit, total, totalPages }`.\n\n`title` único por provider (case-insensitive). 400 `title_not_available` si se duplica.\n`category` string libre. `attributes` objeto libre (opcional).\nCarpeta **1. Crear** tiene 15 bodies distintos para cargar catálogo de prueba.\nMáx 8 fotos, 5MB, PNG/JPEG/WEBP/GIF. Cloudinary: cada media trae `urls.original|thumbnail|card|detail` + width/height/format/bytes.",
+    "description": "Creación y gestión de productos del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (login como `provider`)\n**Store:** 1:1 desde el token — no enviar `storeId`.\n\n**Flujo:** login provider → store creada → GET /products (listar) → POST /products → medias → save.\n\nGET /products y GET /products/:id son del dueño (token). Filtros: ?status= & ?category= & ?page= & ?limit= (default page=1, limit=20, máx 100). Respuesta `{ items, page, limit, total, totalPages }`.\n\n`title` único por provider (case-insensitive). 400 `title_not_available` si se duplica.\nPATCH /products/:id edita cualquier campo (parcial). Si el producto queda `active`, se revalida completitud.\n`category` string libre. `attributes` objeto libre (opcional).\nCarpeta **1. Crear** tiene 15 bodies distintos para cargar catálogo de prueba.\nMáx 8 fotos, 5MB, PNG/JPEG/WEBP/GIF. Cloudinary: cada media trae `urls.original|thumbnail|card|detail` + width/height/format/bytes.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -724,6 +724,149 @@
       ]
     },
     {
+      "name": "1b. Editar (PATCH)",
+      "item": [
+        {
+          "name": "Patch título y descripción",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Maxy-cosi Rainbow (editado)\",\n  \"description\": \"Coche actualizado, hasta 17kg.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products", "{{productId}}"]
+            },
+            "description": "Solo los campos enviados. 400 `title_not_available` si el nombre ya existe en otro producto del provider."
+          },
+          "response": []
+        },
+        {
+          "name": "Patch precio + oferta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": {\n    \"list\": 12,\n    \"offer\": 9,\n    \"activeFrom\": \"01/10/2026\",\n    \"activeUntil\": \"31/10/2026\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products", "{{productId}}"]
+            },
+            "description": "price se mergea con el actual. Fechas DD/MM/YYYY o YYYY-MM-DD."
+          },
+          "response": []
+        },
+        {
+          "name": "Patch quitar oferta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": {\n    \"offer\": null\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products", "{{productId}}"]
+            },
+            "description": "`offer: null` elimina oferta y fechas; deja el list."
+          },
+          "response": []
+        },
+        {
+          "name": "Patch attributes (merge)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attributes\": {\n    \"foldable\": true,\n    \"maxSupportedWeight\": 15,\n    \"obsoleteKey\": null\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products", "{{productId}}"]
+            },
+            "description": "Merge. Una key en `null` se borra. El resto de attributes se mantiene."
+          },
+          "response": []
+        },
+        {
+          "name": "Patch status inactive",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products", "{{productId}}"]
+            },
+            "description": "draft | active | inactive. Si el resultado es `active`, corre la misma validación de completitud que save."
+          },
+          "response": []
+        },
+        {
+          "name": "Patch varios campos",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"stroller\",\n  \"title\": \"Bugaboo Fox 5 Plus\",\n  \"description\": \"Compacto, máx 22kg.\",\n  \"price\": {\n    \"list\": 16\n  },\n  \"attributes\": {\n    \"foldable\": true\n  },\n  \"status\": \"draft\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products", "{{productId}}"]
+            },
+            "description": "Fotos no van acá: usar POST/PUT/DELETE medias."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "2. Medias",
       "item": [
         {
@@ -860,7 +1003,7 @@
                 "save"
               ]
             },
-            "description": "Pasa de `draft` → `active`.\nRequiere al menos 1 media; si no → 400 `medias_required`."
+            "description": "Pasa de `draft` → `active`.\nRequiere title, description, category, price.list > 0, attributes con contenido y ≥1 media.\nSi falta algo → 400 `product_incomplete` + `missing: [...]`.\nSi hay oferta inválida → 400 `invalid_offer_price` / `invalid_offer_dates`."
           },
           "response": []
         }
