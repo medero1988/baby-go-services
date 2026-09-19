@@ -1,23 +1,24 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { SupportedCountry } from './settings.types';
+import { Document, Schema as MongooseSchema } from 'mongoose';
+import { SettingValue } from './settings.types';
 
 export type SettingsDocument = Settings & Document;
 
-@Schema({ _id: false })
-export class SupportedCountrySchema implements SupportedCountry {
-  @Prop({ required: true, trim: true, uppercase: true })
-  code: string;
-
-  @Prop({ required: true, trim: true })
-  phoneCode: string;
-}
-
-/** Documento único de configuración global de la app (ver `SettingsSeeder`). */
 @Schema({ collection: 'settings', timestamps: true })
 export class Settings {
-  @Prop({ type: [SupportedCountrySchema], required: true, default: [] })
-  supportedCountries: SupportedCountry[];
+  /** Identificador estable de la config (ej. `supported-countries`). */
+  @Prop({
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    index: true,
+  })
+  code: string;
+
+  /** JSON libre asociado al code. */
+  @Prop({ type: MongooseSchema.Types.Mixed, required: true })
+  value: SettingValue;
 }
 
 export const SettingsSchema = SchemaFactory.createForClass(Settings);

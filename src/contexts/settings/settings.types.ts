@@ -1,9 +1,25 @@
+export type SettingValue = Record<string, unknown> | unknown[];
+
+export type SettingResponse = {
+  id: string;
+  code: string;
+  value: SettingValue;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type SettingListResponse = {
+  items: SettingResponse[];
+};
+
 export interface SupportedCountry {
   code: string;
   phoneCode: string;
 }
 
-/** Semilla usada por el seeder si no existe el documento `settings`. */
+export const SUPPORTED_COUNTRIES_CODE = 'supported-countries';
+
+/** Semilla de `supported-countries` si no existe. */
 export const DEFAULT_SUPPORTED_COUNTRIES: SupportedCountry[] = [
   { code: 'NL', phoneCode: '+31' },
   { code: 'ES', phoneCode: '+34' },

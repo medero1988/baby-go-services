@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
     "name": "Baby Go — Provider Products",
-    "description": "Creación y gestión de productos del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (login como `provider`)\n**Store:** 1:1 desde el token — no enviar `storeId`.\n\n**Flujo:** login provider → store creada → GET /products (listar) → POST /products → medias → save.\n\nGET /products y GET /products/:id son del dueño (token). Filtros: ?status= & ?category= & ?page= & ?limit= (default page=1, limit=20, máx 100). Respuesta `{ items, page, limit, total, totalPages }`.\n\n`title` único por provider (case-insensitive). 400 `title_not_available` si se duplica.\nPATCH /products/:id edita cualquier campo (parcial). Si el producto queda `active`, se revalida completitud.\n`category` string libre. `attributes` objeto libre (opcional).\nCarpeta **1. Crear** tiene 15 bodies distintos para cargar catálogo de prueba.\nMáx 8 fotos, 5MB, PNG/JPEG/WEBP/GIF. Cloudinary: cada media trae `urls.original|thumbnail|card|detail` + width/height/format/bytes.",
+    "description": "Productos del provider. Bearer JWT. Store 1:1 (no mandar storeId).\n\n**List:** GET /v1/products?page=1&limit=20&status=&category= → `{ items, page, limit, total, totalPages }` (default page=1, limit=20, máx 100).\n**Create:** `{ category, title, description, price, attributes? }` → draft. `title` único → `title_not_available`.\n**PATCH /:id** parcial: title, description, category, price (merge; offer:null quita oferta), attributes (merge; null borra key), status.\n**Medias:** POST /:id/medias form-data field `media` (File). Máx 8 / 5MB. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }`.\n**Save:** POST /:id/save → active. Completitud: title, description, category, price.list>0, attributes, ≥1 foto. 400 `product_incomplete` + `missing[]`.\n\nVariables: token, productId, mediaId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -183,7 +183,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -224,7 +225,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -265,7 +267,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -306,7 +309,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -347,7 +351,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -388,7 +393,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -429,7 +435,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -470,7 +477,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -511,7 +519,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -552,7 +561,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -593,7 +603,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -634,7 +645,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -675,7 +687,8 @@
                 "v1",
                 "products"
               ]
-            }
+            },
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         },
@@ -717,7 +730,7 @@
                 "products"
               ]
             },
-            "description": "attributes es opcional."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
           },
           "response": []
         }
@@ -742,8 +755,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "Solo los campos enviados. 400 `title_not_available` si el nombre ya existe en otro producto del provider."
           },
@@ -765,8 +784,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "price se mergea con el actual. Fechas DD/MM/YYYY o YYYY-MM-DD."
           },
@@ -788,8 +813,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "`offer: null` elimina oferta y fechas; deja el list."
           },
@@ -811,8 +842,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "Merge. Una key en `null` se borra. El resto de attributes se mantiene."
           },
@@ -834,8 +871,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "draft | active | inactive. Si el resultado es `active`, corre la misma validación de completitud que save."
           },
@@ -857,8 +900,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "products", "{{productId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
             },
             "description": "Fotos no van acá: usar POST/PUT/DELETE medias."
           },
@@ -956,7 +1005,8 @@
                 "medias",
                 "{{mediaId}}"
               ]
-            }
+            },
+            "description": "form-data field `media` tipo File. Reemplaza esa mediaId. Devuelve nuevo `{ id, url, urls... }` y actualiza mediaId."
           },
           "response": []
         },
@@ -977,7 +1027,8 @@
                 "medias",
                 "{{mediaId}}"
               ]
-            }
+            },
+            "description": "Borra la foto del producto y de Cloudinary. `{ success: true }`."
           },
           "response": []
         }

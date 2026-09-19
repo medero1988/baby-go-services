@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "d4e5f6a7-b8c9-0123-def0-345678901234",
     "name": "Baby Go — Settings",
-    "description": "Configuración global (documento único `settings`).\n\nBase: {{baseUrl}} = http://localhost:3000/api\nRutas: /api/v1/settings\n\n- GET: público (sin token)\n- PATCH: requiere Bearer JWT\n\nEl seeder crea `supportedCountries` al arrancar si no existe el documento.",
+    "description": "Settings por `code` + JSON.\n\n**GET /v1/settings** público → `{ items: [{ id, code, value, createdAt, updatedAt }] }`\n**GET /v1/settings/:code** público → un documento. 404 `settings_not_found`.\n**POST /v1/settings** JWT → `{ code, value }`. 409 `settings_code_exists`.\n**PATCH /v1/settings/:code** JWT → `{ value }` reemplaza el JSON.\n\nEl seeder crea `supported-countries` (array `{ code, phoneCode }`).\n`code`: empieza con letra, letras/números/_/- , se guarda lowercase.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -23,6 +23,10 @@
     {
       "key": "token",
       "value": ""
+    },
+    {
+      "key": "settingCode",
+      "value": "supported-countries"
     }
   ],
   "item": [
@@ -30,11 +34,9 @@
       "name": "Settings",
       "item": [
         {
-          "name": "1. Get settings (público)",
+          "name": "1. Listar todas (público)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
@@ -42,12 +44,73 @@
               "host": ["{{baseUrl}}"],
               "path": ["v1", "settings"]
             },
-            "description": "Devuelve el singleton settings (supportedCountries). Sin JWT.\nSi no hay documento → 404 `settings_not_found` (el seeder suele crearlo al boot)."
+            "description": "Público. `{ items: [{ id, code, value }] }`. El front toma `code` y usa GET by code o lee `value` acá."
           },
           "response": []
         },
         {
-          "name": "2. Update settings (JWT)",
+          "name": "2. Get by code (público)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings/{{settingCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings", "{{settingCode}}"]
+            },
+            "description": "Público. Ej. `supported-countries` → `{ code, value: [{ code, phoneCode }] }`. 404 `settings_not_found`."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Crear setting (JWT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"feature-flags\",\n  \"value\": {\n    \"bundlesEnabled\": true,\n    \"maxProductPhotos\": 8\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings"]
+            },
+            "description": "Bearer. `{ code, value }` (value = object o array JSON). 409 `settings_code_exists` si el code ya está."
+          },
+          "response": []
+        },
+        {
+          "name": "3b. Crear supported-countries (si no hay seeder)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"supported-countries\",\n  \"value\": [\n    { \"code\": \"NL\", \"phoneCode\": \"+31\" },\n    { \"code\": \"ES\", \"phoneCode\": \"+34\" },\n    { \"code\": \"IT\", \"phoneCode\": \"+39\" },\n    { \"code\": \"DE\", \"phoneCode\": \"+49\" },\n    { \"code\": \"BE\", \"phoneCode\": \"+32\" },\n    { \"code\": \"UK\", \"phoneCode\": \"+44\" },\n    { \"code\": \"PT\", \"phoneCode\": \"+351\" },\n    { \"code\": \"FR\", \"phoneCode\": \"+33\" },\n    { \"code\": \"CL\", \"phoneCode\": \"+56\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "settings"]
+            },
+            "description": "El seeder ya crea este code al boot. Si existe → 409."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Patch setting (JWT)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -58,14 +121,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"supportedCountries\": [\n    { \"code\": \"NL\", \"phoneCode\": \"+31\" },\n    { \"code\": \"ES\", \"phoneCode\": \"+34\" },\n    { \"code\": \"IT\", \"phoneCode\": \"+39\" },\n    { \"code\": \"DE\", \"phoneCode\": \"+49\" },\n    { \"code\": \"BE\", \"phoneCode\": \"+32\" },\n    { \"code\": \"UK\", \"phoneCode\": \"+44\" },\n    { \"code\": \"PT\", \"phoneCode\": \"+351\" },\n    { \"code\": \"FR\", \"phoneCode\": \"+33\" },\n    { \"code\": \"CL\", \"phoneCode\": \"+56\" }\n  ]\n}"
+              "raw": "{\n  \"value\": [\n    { \"code\": \"NL\", \"phoneCode\": \"+31\" },\n    { \"code\": \"ES\", \"phoneCode\": \"+34\" },\n    { \"code\": \"IT\", \"phoneCode\": \"+39\" },\n    { \"code\": \"DE\", \"phoneCode\": \"+49\" },\n    { \"code\": \"BE\", \"phoneCode\": \"+32\" },\n    { \"code\": \"UK\", \"phoneCode\": \"+44\" },\n    { \"code\": \"PT\", \"phoneCode\": \"+351\" },\n    { \"code\": \"FR\", \"phoneCode\": \"+33\" },\n    { \"code\": \"CL\", \"phoneCode\": \"+56\" }\n  ]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/settings",
+              "raw": "{{baseUrl}}/v1/settings/{{settingCode}}",
               "host": ["{{baseUrl}}"],
-              "path": ["v1", "settings"]
+              "path": ["v1", "settings", "{{settingCode}}"]
             },
-            "description": "Actualiza settings (parcial). Requiere Bearer {{token}}.\n`supportedCountries`: array de `{ code, phoneCode }` (phoneCode con `+`).\nSi no existe documento → 404 `settings_not_found`."
+            "description": "Bearer. Reemplaza `value` completo del code. 404 `settings_not_found`."
           },
           "response": []
         }

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-bundles000001",
     "name": "Baby Go — Provider Bundles",
-    "description": "Gestión de bundles (combo de productos) del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (role `provider`)\n**Store:** 1:1 desde el token.\n\n**Flujo:** login → 2+ productos `active` → POST /bundles → PATCH → POST /bundles/:id/save.\n\n`products` = ids de productos propios (mín 2, máx 10, únicos).\n`category` lo arma el BE: `[\"bundle\", ...categorías de los productos]`.\n`title` único por provider entre bundles.\n\nGET paginado: `?status=&category=&page=&limit=` → `{ items, page, limit, total, totalPages }`.\nActivar: 400 `bundle_incomplete` | `products_not_found` | `products_not_active`.\nLos productos del bundle tienen que estar `active` para publicar.\nCarpeta **1. Crear** usa IDs reales del catálogo actual. Crear deja `draft` aunque los productos no estén active; para save sí tienen que estar active.",
+    "description": "Bundles (combo ≥2 productos propios). Bearer JWT.\n\n**Create:** `{ products: [mongoId, ...], title, description, price }` (mín 2, máx 10, únicos).\n`category` lo calcula el BE: `[\"bundle\", ...categorías hijas]`.\n**List:** GET /v1/bundles?page=&limit=&status=&category= → `{ items, page, limit, total, totalPages }`. `products` viene expandido.\n**PATCH:** products, title, description, price, status.\n**Save:** POST /:id/save. Los productos tienen que estar `active` (`products_not_active`). Otros: `bundle_incomplete`, `products_not_found`, `title_not_available`.\nDELETE no borra los productos.\n\nCarpeta 1. Crear tiene bodies con IDs reales de catálogo de prueba.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -97,7 +97,8 @@
                 "bundles",
                 "{{bundleId}}"
               ]
-            }
+            },
+            "description": "Detalle. `products` expandido (title, price, medias, status). 404 `bundle_not_found`."
           },
           "response": []
         }
@@ -639,7 +640,8 @@
                 "bundles",
                 "{{bundleId}}"
               ]
-            }
+            },
+            "description": "PATCH parcial. Solo title/description. Si queda active, revalida completitud."
           },
           "response": []
         },
@@ -667,7 +669,8 @@
                 "bundles",
                 "{{bundleId}}"
               ]
-            }
+            },
+            "description": "price se mergea. Si mandás offer, incluí activeFrom/activeUntil (o ya existían)."
           },
           "response": []
         },
@@ -695,7 +698,8 @@
                 "bundles",
                 "{{bundleId}}"
               ]
-            }
+            },
+            "description": "`price.offer: null` saca oferta y fechas; deja list."
           },
           "response": []
         },
@@ -752,7 +756,8 @@
                 "bundles",
                 "{{bundleId}}"
               ]
-            }
+            },
+            "description": "`status`: draft | active | inactive. Pasar a active corre las mismas reglas que save."
           },
           "response": []
         }

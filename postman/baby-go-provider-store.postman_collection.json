@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "API store proveedor (base: /api/v1/store).\n\n**Auth:** Bearer {{token}} (role `provider`).\n**Relación 1:1:** un provider = una store. Se resuelve desde el token; no se pasa `storeId`.\n\nFlujo: login → POST /store/profile → cell → avatar → delivery → bank → confirmation → Connect.",
+    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}}\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Connect.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary HTTPS.\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -40,9 +40,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/v1/store",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store"
+              ]
+            },
+            "description": "Bearer provider. Store 1:1 del token. 404 `store_not_found` si todavía no creó perfil.\nRespuesta: id, name, avatar, country, address, cellPhone, delivery, customerPickup, stripeConnect, bankAccount (sin IBAN completo), meta."
           },
           "response": []
         },
@@ -53,9 +59,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/v1/store/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "profile"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "profile"
+              ]
+            },
+            "description": "Alias de GET /store. Mismo payload."
           },
           "response": []
         },
@@ -75,10 +88,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "profile"
+              ]
             },
-            "description": "Solo una store por provider. Si ya existe → `store_already_exists`."
+            "description": "Bearer. Una sola store por provider → `store_already_exists`.\nBody: `{ name, country (ISO-2), address: { addressLine1, addressLine2?, placeId }, cellPhone }`.\nDispara OTP al celular. En local puede devolver `devCode`."
           },
           "response": []
         },
@@ -98,9 +117,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "profile"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "profile"
+              ]
+            },
+            "description": "Parcial: `name`, `country`, `address` (merge), `cellPhone`. Si cambia el celular, `meta.cellValidated` vuelve a false. Body vacío → `no_fields_to_update`."
           },
           "response": []
         },
@@ -111,9 +137,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/v1/store/cell-verification/resend",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "cell-verification", "resend"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "cell-verification",
+                "resend"
+              ]
+            },
+            "description": "Reenvía OTP (WhatsApp o SMS según env). En local puede incluir `devCode`."
           },
           "response": []
         },
@@ -133,9 +167,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/cell-verification",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "cell-verification"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "cell-verification"
+              ]
+            },
+            "description": "Body `{ code }`. Errores: `invalid_code`, `code_expired`. Marca `meta.cellValidated`."
           },
           "response": []
         },
@@ -156,10 +197,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/avatar",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "avatar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "avatar"
+              ]
             },
-            "description": "form-data field `avatar` tipo File. Se sube a Cloudinary; `store.avatar` queda con URL HTTPS."
+            "description": "multipart field **`avatar`** tipo File (PNG/JPEG/WEBP/GIF, máx 5MB). NO setear Content-Type a mano.\nSe sube a Cloudinary; `store.avatar` queda HTTPS."
           },
           "response": []
         },
@@ -179,9 +226,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/delivery",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "delivery"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "delivery"
+              ]
+            },
+            "description": "`{ available, timeRanges: [\"7:30-9:30\", ...], days: { mon: [0,1], ... } }`.\n`days.*` son índices de `timeRanges` (máx 3 por día)."
           },
           "response": []
         },
@@ -201,9 +255,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/delivery",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "delivery"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "delivery"
+              ]
+            },
+            "description": "`{ available: true, available24h: true }`. No hace falta timeRanges/days."
           },
           "response": []
         },
@@ -223,9 +284,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/delivery-pricing",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "delivery-pricing"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "delivery-pricing"
+              ]
+            },
+            "description": "`{ basePrice, priceKm, maxDeliveryDistance }` en **centavos** y km. Requiere haber configurado delivery. `meta.lastSteep` = delivery-pricing."
           },
           "response": []
         },
@@ -245,9 +313,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/customer-pickup",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "customer-pickup"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "customer-pickup"
+              ]
+            },
+            "description": "Igual shape que delivery, máx 2 intervalos por día."
           },
           "response": []
         },
@@ -267,9 +342,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/customer-pickup",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "customer-pickup"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "customer-pickup"
+              ]
+            },
+            "description": "`{ available: true, available24h: true }`."
           },
           "response": []
         },
@@ -289,9 +371,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/bank-account",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "bank-account"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "bank-account"
+              ]
+            },
+            "description": "`accountType`: `IBAN` (+ `iban`) o `NUMBER` (+ `accountNumber`).\nTambién: firstName, lastName, country (ISO-2), currency?, bankName, swiftCode?, routingNumber?, address?, entityType: individual|company.\nNo se persiste el IBAN completo: last4 + token Stripe."
           },
           "response": []
         },
@@ -311,9 +400,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/confirmation",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "confirmation"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "confirmation"
+              ]
+            },
+            "description": "`{ acceptedTerms: true }`. Requiere cell validado + bank. Pasa `meta.state` a `pending-review`.\nErrores: `terms_not_accepted`, `cell_not_validated`, `bank_account_required`, `store_already_confirmed`."
           },
           "response": []
         },
@@ -333,9 +429,17 @@
             },
             "url": {
               "raw": "{{baseUrl}}/v1/store/stripe-connect/account-link",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "stripe-connect", "account-link"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "stripe-connect",
+                "account-link"
+              ]
+            },
+            "description": "Opcional `{ returnUrl, refreshUrl }`. Devuelve URL de onboarding Stripe Express."
           },
           "response": []
         },
@@ -346,9 +450,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/v1/store/stripe-connect/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "stripe-connect", "status"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "stripe-connect",
+                "status"
+              ]
+            },
+            "description": "Sincroniza chargesEnabled/payoutsEnabled desde Stripe y devuelve la store."
           },
           "response": []
         },
@@ -359,8 +471,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/v1/store/movements",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store", "movements"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store",
+                "movements"
+              ],
               "query": [
                 {
                   "key": "status",
@@ -368,7 +486,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "Query opcional `status`. Pagos de la store del token."
           },
           "response": []
         },
@@ -379,9 +498,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/v1/store",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "store"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "store"
+              ]
+            },
+            "description": "Borra la store del provider (y avatar en Cloudinary). No manda storeId."
           },
           "response": []
         }
