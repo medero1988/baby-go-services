@@ -8,16 +8,13 @@ import { Model, Types } from 'mongoose';
 import { StorageService } from '../../../shared/storage/storage.service';
 import { StoreService } from '../store/store.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import {
-  UpdateProductDto,
-  UpdateProductPriceDto,
-} from './dto/update-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductDocument, ProductMedia } from './product.schema';
+import { hasPricePatch, mergePrice, normalizePrice } from './product-price';
 import {
   ProductAttributes,
   ProductListResponse,
   ProductMediaResponse,
-  ProductPrice,
   ProductResponse,
 } from './product.types';
 
@@ -112,6 +109,40 @@ export class ProductService {
 
     await product.save();
     return this.toResponse(product.toObject() as ProductDocument);
+  }
+
+  /** Productos propios por id, en el orden pedido. Falla si falta alguno. */
+  async requireOwnedProducts(
+    userId: string,
+    ids: string[],
+  ): Promise<ProductDocument[]> {
+    const found = await this.loadOwnedProducts(userId, ids);
+    if (found.length !== ids.length) {
+      const present = new Set(found.map((doc) => String(doc._id)));
+      throw new BadRequestException({
+        error: 'products_not_found',
+        missing: ids.filter((id) => !present.has(id)),
+      });
+    }
+    return found;
+  }
+
+  /** Productos propios encontrados (omite ids ajenos o inexistentes). */
+  async loadOwnedProducts(
+    userId: string,
+    ids: string[],
+  ): Promise<ProductDocument[]> {
+    if (!ids.length) return [];
+    const docs = await this.productModel.find({ _id: { $in: ids } }).exec();
+    const byId = new Map<string, ProductDocument>();
+    for (const doc of docs) {
+      if (String(doc.userId) === userId) {
+        byId.set(String(doc._id), doc);
+      }
+    }
+    return ids
+      .map((id) => byId.get(id))
+      .filter((doc): doc is ProductDocument => Boolean(doc));
   }
 
   /** Productos de la store del provider autenticado. */
@@ -419,7 +450,7 @@ export class ProductService {
     };
   }
 
-  private toResponse(doc: ProductDocument): ProductResponse {
+  toResponse(doc: ProductDocument): ProductResponse {
     return {
       id: String(doc._id),
       storeId: String(doc.storeId),
@@ -435,76 +466,6 @@ export class ProductService {
       updatedAt: (doc as { updatedAt?: Date }).updatedAt?.toISOString?.(),
     };
   }
-}
-
-function normalizePrice(dto: {
-  list: number;
-  offer?: number;
-  activeFrom?: string;
-  activeUntil?: string;
-}): ProductPrice {
-  if (dto.offer !== undefined && dto.offer > dto.list) {
-    throw new BadRequestException({
-      error: 'invalid_offer_price',
-      message: 'offer must be less than or equal to list price',
-    });
-  }
-
-  const price: ProductPrice = { list: dto.list };
-
-  if (dto.offer !== undefined) {
-    price.offer = dto.offer;
-    price.activeFrom = normalizeDateInput(dto.activeFrom!, 'activeFrom');
-    price.activeUntil = normalizeDateInput(dto.activeUntil!, 'activeUntil');
-    if (price.activeUntil < price.activeFrom) {
-      throw new BadRequestException({
-        error: 'invalid_offer_dates',
-        message: 'activeUntil must be on or after activeFrom',
-      });
-    }
-  }
-
-  return price;
-}
-
-/** Acepta YYYY-MM-DD o DD/MM/YYYY (Miro). Guarda ISO date YYYY-MM-DD. */
-function normalizeDateInput(value: string, field: string): string {
-  const raw = value.trim();
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/;
-  const dmy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-
-  let y: number;
-  let m: number;
-  let d: number;
-
-  const isoMatch = raw.match(iso);
-  const dmyMatch = raw.match(dmy);
-  if (isoMatch) {
-    y = Number(isoMatch[1]);
-    m = Number(isoMatch[2]);
-    d = Number(isoMatch[3]);
-  } else if (dmyMatch) {
-    d = Number(dmyMatch[1]);
-    m = Number(dmyMatch[2]);
-    y = Number(dmyMatch[3]);
-  } else {
-    throw new BadRequestException({
-      error: 'invalid_date',
-      field,
-      message: 'Use YYYY-MM-DD or DD/MM/YYYY',
-    });
-  }
-
-  const date = new Date(Date.UTC(y, m - 1, d));
-  if (
-    date.getUTCFullYear() !== y ||
-    date.getUTCMonth() !== m - 1 ||
-    date.getUTCDate() !== d
-  ) {
-    throw new BadRequestException({ error: 'invalid_date', field });
-  }
-
-  return `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
 }
 
 function resolveImageExtension(file: Express.Multer.File): string | null {
@@ -568,48 +529,6 @@ function hasPatchFields(dto: UpdateProductDto): boolean {
     dto.attributes !== undefined ||
     dto.status !== undefined
   );
-}
-
-function hasPricePatch(patch: UpdateProductPriceDto): boolean {
-  return (
-    patch.list !== undefined ||
-    patch.offer !== undefined ||
-    patch.activeFrom !== undefined ||
-    patch.activeUntil !== undefined
-  );
-}
-
-function mergePrice(
-  current: ProductPrice | undefined,
-  patch: UpdateProductPriceDto,
-): ProductPrice {
-  const list = patch.list ?? current?.list;
-  if (typeof list !== 'number' || !Number.isFinite(list)) {
-    throw new BadRequestException({
-      error: 'price_required',
-      message: 'price.list is required',
-    });
-  }
-
-  if (patch.offer === null) {
-    return { list };
-  }
-
-  const merged: {
-    list: number;
-    offer?: number;
-    activeFrom?: string;
-    activeUntil?: string;
-  } = { list };
-
-  const offer = patch.offer ?? current?.offer;
-  if (offer !== undefined) {
-    merged.offer = offer;
-    merged.activeFrom = patch.activeFrom ?? current?.activeFrom;
-    merged.activeUntil = patch.activeUntil ?? current?.activeUntil;
-  }
-
-  return normalizePrice(merged);
 }
 
 function mergeAttributes(

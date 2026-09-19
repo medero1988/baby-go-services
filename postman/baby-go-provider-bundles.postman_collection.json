@@ -1,0 +1,808 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-bundles000001",
+    "name": "Baby Go — Provider Bundles",
+    "description": "Gestión de bundles (combo de productos) del provider.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api\n**Auth:** Bearer {{token}} (role `provider`)\n**Store:** 1:1 desde el token.\n\n**Flujo:** login → 2+ productos `active` → POST /bundles → PATCH → POST /bundles/:id/save.\n\n`products` = ids de productos propios (mín 2, máx 10, únicos).\n`category` lo arma el BE: `[\"bundle\", ...categorías de los productos]`.\n`title` único por provider entre bundles.\n\nGET paginado: `?status=&category=&page=&limit=` → `{ items, page, limit, total, totalPages }`.\nActivar: 400 `bundle_incomplete` | `products_not_found` | `products_not_active`.\nLos productos del bundle tienen que estar `active` para publicar.\nCarpeta **1. Crear** usa IDs reales del catálogo actual. Crear deja `draft` aunque los productos no estén active; para save sí tienen que estar active.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "productId1",
+      "value": "6aac542c6c1d9937260a634b"
+    },
+    {
+      "key": "productId2",
+      "value": "6aac4ee7732cdec3fdf08194"
+    },
+    {
+      "key": "bundleId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Listar / ver",
+      "item": [
+        {
+          "name": "Listar mis bundles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true,
+                  "description": "draft | active | inactive"
+                },
+                {
+                  "key": "category",
+                  "value": "stroller",
+                  "disabled": true,
+                  "description": "Match si category[] contiene el valor"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Bundles de la store del token. `products` viene expandido."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener un bundle",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Crear",
+      "item": [
+        {
+          "name": "01. Paseo bebé (Maxy-cosi + Cybex)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac542c6c1d9937260a634b\",\n    \"6aac4ee7732cdec3fdf08194\"\n  ],\n  \"title\": \"Maxy-cossi Rambow\",\n  \"description\": \"Up to 17kg, rain coat, bassinet, electric assist while walking, rocking mode, smart braking, strong wheels, and high seat\",\n  \"price\": {\n    \"list\": 24,\n    \"offer\": 20,\n    \"activeFrom\": \"01/10/2026\",\n    \"activeUntil\": \"31/10/2026\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Combo del diseño Add bundle. Maxy-cosi Rainbow (active) + Cybex Cloud T. category → [bundle, stroller, car-seat]."
+          },
+          "response": []
+        },
+        {
+          "name": "02. Duo Bugaboo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac54386c1d9937260a6350\",\n    \"6aac4edf732cdec3fdf0818a\"\n  ],\n  \"title\": \"Duo Bugaboo Fox 5\",\n  \"description\": \"Fox 5 Plus y Fox 5 para dos niños. Compactos, máx 22kg.\",\n  \"price\": {\n    \"list\": 26\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Bugaboo Fox 5 Plus xv + Bugaboo Fox 5. category → [bundle, stroller]."
+          },
+          "response": []
+        },
+        {
+          "name": "03. Coche + bici kids",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac542c6c1d9937260a634b\",\n    \"6aac4ee4732cdec3fdf0818f\"\n  ],\n  \"title\": \"Paseo + City Cruiser\",\n  \"description\": \"Stroller Maxy-cosi y bici urbana eléctrica para el nene.\",\n  \"price\": {\n    \"list\": 22,\n    \"offer\": 18,\n    \"activeFrom\": \"01/10/2026\",\n    \"activeUntil\": \"15/11/2026\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Maxy-cosi Rainbow + City Cruiser Kids. category → [bundle, stroller, bike]."
+          },
+          "response": []
+        },
+        {
+          "name": "04. Ruedas kids (MTB + city)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4ef01fb4f7caa1cfdaea\",\n    \"6aac4ee4732cdec3fdf0818f\"\n  ],\n  \"title\": \"Kids wheels pack\",\n  \"description\": \"Mountain Mini 16 y City Cruiser eléctrica.\",\n  \"price\": {\n    \"list\": 24\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Mountain Mini 16 + City Cruiser Kids. category → [bundle, bike]."
+          },
+          "response": []
+        },
+        {
+          "name": "05. Familia 3 (stroller + huevito + bici)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac542c6c1d9937260a634b\",\n    \"6aac4ee7732cdec3fdf08194\",\n    \"6aac4ee4732cdec3fdf0818f\"\n  ],\n  \"title\": \"Family outing pack\",\n  \"description\": \"Coche, huevito Cybex Cloud T y bici kids.\",\n  \"price\": {\n    \"list\": 38\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "3 productos. category → [bundle, stroller, car-seat, bike]."
+          },
+          "response": []
+        },
+        {
+          "name": "06. Aventura agua (kayak + surf)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4f28b7257801a5fec123\",\n    \"6aac4ef7bc2a6baab78eeb41\"\n  ],\n  \"title\": \"Lake & surf pack\",\n  \"description\": \"Kayak doble sit-on-top y softboard 7’0 para principiantes.\",\n  \"price\": {\n    \"list\": 48\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Sit-on-top 2 pax + Softboard 7'0. category → [bundle, kayak, surfboard]."
+          },
+          "response": []
+        },
+        {
+          "name": "07. Camping (carpa + kayak)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4f1ab7257801a5fec114\",\n    \"6aac4f28b7257801a5fec123\"\n  ],\n  \"title\": \"Weekend camping pack\",\n  \"description\": \"Quechua 2 Seconds 3 y kayak doble para lagos.\",\n  \"price\": {\n    \"list\": 45,\n    \"offer\": 39,\n    \"activeFrom\": \"01/11/2026\",\n    \"activeUntil\": \"31/03/2027\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Quechua 2 Seconds 3 + Sit-on-top 2 pax. category → [bundle, tent, kayak]."
+          },
+          "response": []
+        },
+        {
+          "name": "08. Foto aérea (Sony + DJI)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4f15b7257801a5fec10f\",\n    \"6aac4f04b7257801a5fec105\"\n  ],\n  \"title\": \"Creator aerial kit\",\n  \"description\": \"Sony A7C II kit 28-60mm y DJI Mini 4 Pro 4K.\",\n  \"price\": {\n    \"list\": 90,\n    \"offer\": 79,\n    \"activeFrom\": \"01/10/2026\",\n    \"activeUntil\": \"30/11/2026\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Sony A7C II + DJI Mini 4 Pro. category → [bundle, camera, drone]."
+          },
+          "response": []
+        },
+        {
+          "name": "09. Movilidad urbana (scooter + bici)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4f10b7257801a5fec10a\",\n    \"6aac4ee4732cdec3fdf0818f\"\n  ],\n  \"title\": \"City commute pack\",\n  \"description\": \"Xiaomi Electric Scooter 4 y City Cruiser Kids.\",\n  \"price\": {\n    \"list\": 32\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Xiaomi Electric Scooter 4 + City Cruiser Kids. category → [bundle, scooter, bike]."
+          },
+          "response": []
+        },
+        {
+          "name": "10. Taller + música",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4f24b7257801a5fec11e\",\n    \"6aac4f1fb7257801a5fec119\"\n  ],\n  \"title\": \"Garage session pack\",\n  \"description\": \"Taladro Bosch GSB 18V y guitarra Yamaha F310.\",\n  \"price\": {\n    \"list\": 26\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Bosch GSB 18V + Yamaha F310. category → [bundle, tool, instrument]."
+          },
+          "response": []
+        },
+        {
+          "name": "11. Nieve (ski + carpa)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac4ed8732cdec3fdf08185\",\n    \"6aac4f1ab7257801a5fec114\"\n  ],\n  \"title\": \"Winter mountain pack\",\n  \"description\": \"All-mountain 170 con bastones y carpa Quechua 3p.\",\n  \"price\": {\n    \"list\": 50,\n    \"offer\": 42,\n    \"activeFrom\": \"01/12/2026\",\n    \"activeUntil\": \"31/03/2027\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "All-mountain 170 + Quechua 2 Seconds 3. category → [bundle, ski, tent]."
+          },
+          "response": []
+        },
+        {
+          "name": "12. Stroller + item genérico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.id) pm.collectionVariables.set('bundleId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac54386c1d9937260a6350\",\n    \"6aac4f2eb7257801a5fec128\"\n  ],\n  \"title\": \"Fox 5 Plus extras\",\n  \"description\": \"Bugaboo Fox 5 Plus xv con accesorio genérico.\",\n  \"price\": {\n    \"list\": 20\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles"
+              ]
+            },
+            "description": "Bugaboo Fox 5 Plus xv + Item genérico. category → [bundle, stroller, other]."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Editar (PATCH)",
+      "item": [
+        {
+          "name": "Patch título y descripción",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Maxy-cossi Rambow (editado)\",\n  \"description\": \"Combo actualizado.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patch precio + oferta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": {\n    \"list\": 12,\n    \"offer\": 9,\n    \"activeFrom\": \"01/10/2026\",\n    \"activeUntil\": \"31/10/2026\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patch quitar oferta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": {\n    \"offer\": null\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patch productos del bundle",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\n    \"6aac542c6c1d9937260a634b\",\n    \"6aac4ee7732cdec3fdf08194\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            },
+            "description": "Reemplaza la lista. Recalcula `category`."
+          },
+          "response": []
+        },
+        {
+          "name": "Patch status inactive",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Publicar / borrar",
+      "item": [
+        {
+          "name": "Save bundle (activar)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}",
+                "save"
+              ]
+            },
+            "description": "draft → active. Requiere title, description, price.list > 0, ≥2 productos propios y que estén `active`."
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar bundle",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "bundles",
+                "{{bundleId}}"
+              ]
+            },
+            "description": "No borra los productos, solo el bundle."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
