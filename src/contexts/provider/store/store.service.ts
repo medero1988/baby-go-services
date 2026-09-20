@@ -27,6 +27,8 @@ import {
   PickupSchedule,
   ServiceSchedule,
   StoreAddress,
+  StoreAvatar,
+  StoreAvatarResponse,
   StoreBankAccount,
   StoreFunnelMeta,
   StoreProfileResponse,
@@ -374,14 +376,18 @@ export class StoreService {
     return store;
   }
 
-  /** Sube y guarda el avatar de la store (multipart field: `avatar`). */
+  /** Sube avatar al bucket (mismo StorageService que product medias). */
   async uploadAvatar(
     storeId: string,
     userId: string,
     file: Express.Multer.File,
   ): Promise<StoreProfileResponse> {
     if (!file) {
-      throw new BadRequestException({ error: 'avatar_missing' });
+      throw new BadRequestException({
+        error: 'avatar_missing',
+        message:
+          'Enviá form-data field `avatar` tipo File. En Postman: Headers → desactivá Content-Type. Si hay triángulo amarillo, volvé a elegir el archivo.',
+      });
     }
 
     if (!file.buffer?.length) {
@@ -398,23 +404,35 @@ export class StoreService {
     }
 
     const store = await this.requireOwnedStore(storeId, userId);
-    if (store.avatar) {
-      await this.storage.delete({ url: store.avatar });
+    const previous = normalizeStoredAvatar(store.avatar);
+    if (previous) {
+      await this.storage.delete({
+        url: previous.url,
+        publicId: previous.publicId,
+      });
     }
 
     const stored = await this.storage.uploadImage({
       buffer: file.buffer,
-      folder: 'avatars',
-      filename: `${storeId}.${ext}`,
+      folder: `avatars/${storeId}`,
+      filename: `avatar.${ext}`,
     });
-    const avatarUrl = stored.url;
+
+    const avatar: StoreAvatar = {
+      url: stored.url,
+      publicId: stored.publicId,
+      width: stored.width,
+      height: stored.height,
+      format: stored.format,
+      bytes: stored.bytes,
+    };
 
     const updated = await this.storeModel
       .findByIdAndUpdate(
         storeId,
         {
           $set: {
-            avatar: avatarUrl,
+            avatar,
             'meta.lastSteep': 'avatar',
           },
         },
@@ -434,7 +452,13 @@ export class StoreService {
     const store = await this.requireOwnedStore(storeId, userId);
 
     if (store.avatar) {
-      await this.storage.delete({ url: store.avatar });
+      const previous = normalizeStoredAvatar(store.avatar);
+      if (previous) {
+        await this.storage.delete({
+          url: previous.url,
+          publicId: previous.publicId,
+        });
+      }
     }
 
     await this.storeModel.deleteOne({ _id: storeId }).exec();
@@ -881,7 +905,7 @@ export class StoreService {
       country: string;
       address: StoreAddress;
       cellPhone: string;
-      avatar?: string;
+      avatar?: StoreAvatar | string;
       delivery?: AttentionSchedule;
       customerPickup?: PickupSchedule;
       stripeConnect?: StripeConnectStatus;
@@ -894,7 +918,7 @@ export class StoreService {
       id: String(doc._id),
       userId: String(doc.userId),
       name: doc.name,
-      avatar: doc.avatar,
+      avatar: this.toAvatarResponse(doc.avatar),
       country: doc.country,
       address: doc.address,
       cellPhone: doc.cellPhone,
@@ -910,6 +934,21 @@ export class StoreService {
       res.devCode = devCode;
     }
     return res;
+  }
+
+  private toAvatarResponse(
+    avatar?: StoreAvatar | string,
+  ): StoreAvatarResponse | undefined {
+    const stored = normalizeStoredAvatar(avatar);
+    if (!stored) return undefined;
+    return {
+      url: stored.url,
+      width: stored.width,
+      height: stored.height,
+      format: stored.format,
+      bytes: stored.bytes,
+      urls: this.storage.imageUrls(stored.publicId, stored.url),
+    };
   }
 }
 
@@ -968,8 +1007,10 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Extensión permitida: MIME image/* o, si Postman manda octet-stream, por nombre de archivo. */
+/** Extensión permitida: MIME, nombre de archivo o magic bytes (como product medias). */
 function resolveAvatarExtension(file: Express.Multer.File): string | null {
+  if (!file) return null;
+
   const mimeToExt: Record<string, string> = {
     'image/png': 'png',
     'image/jpeg': 'jpg',
@@ -990,7 +1031,58 @@ function resolveAvatarExtension(file: Express.Multer.File): string | null {
     return match[1] === 'jpeg' ? 'jpg' : match[1];
   }
 
+  return sniffImageExtension(file.buffer);
+}
+
+function sniffImageExtension(buffer?: Buffer): string | null {
+  if (!buffer || buffer.length < 12) return null;
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return 'jpg';
+  }
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47
+  ) {
+    return 'png';
+  }
+  if (
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38
+  ) {
+    return 'gif';
+  }
+  if (
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return 'webp';
+  }
   return null;
+}
+
+/** Normaliza avatar legacy (string URL) al modelo de storage. */
+function normalizeStoredAvatar(
+  avatar?: StoreAvatar | string | null,
+): StoreAvatar | undefined {
+  if (!avatar) return undefined;
+  if (typeof avatar === 'string') {
+    const url = avatar.trim();
+    return url ? { url } : undefined;
+  }
+  const url = avatar.url?.trim();
+  if (!url) return undefined;
+  return {
+    url,
+    publicId: avatar.publicId,
+    width: avatar.width,
+    height: avatar.height,
+    format: avatar.format,
+    bytes: avatar.bytes,
+  };
 }
 
 function generateNumericCode(length: number): string {

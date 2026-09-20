@@ -111,6 +111,16 @@
               ]
             },
             {
+              "key": "color",
+              "label": "Color",
+              "type": "select",
+              "options": [
+                { "value": "blue", "label": "Azul" },
+                { "value": "red", "label": "Rojo" },
+                { "value": "green", "label": "Verde" }
+              ]
+            },
+            {
               "key": "wheelSize",
               "label": "Rodado",
               "type": "number",
@@ -172,6 +182,31 @@
                 { "value": "rear", "label": "Trasera" },
                 { "value": "longtail", "label": "Longtail" }
               ]
+            },
+            {
+              "key": "rainCover",
+              "label": "Cubrelluvia",
+              "type": "boolean"
+            }
+          ]
+        },
+        {
+          "id": "patines",
+          "label": "Patines",
+          "attributes": [
+            {
+              "key": "wheelCount",
+              "label": "Número de ruedas",
+              "type": "number",
+              "required": true,
+              "min": 3,
+              "max": 6
+            },
+            {
+              "key": "electric",
+              "label": "Eléctrica",
+              "type": "boolean",
+              "required": true
             },
             {
               "key": "rainCover",

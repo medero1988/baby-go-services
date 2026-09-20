@@ -68,7 +68,7 @@ Flujo: `POST /profile` → cell → avatar → delivery → delivery-pricing →
 `meta.state`: `missing-info` | `pending-review` | `active`.  
 `meta.lastSteep`: último paso del funnel.
 
-Avatar: `multipart/form-data` field **`avatar`** tipo File. URL Cloudinary en `store.avatar`.
+Avatar: `multipart/form-data` field **`avatar`** tipo File. Cloudinary como product medias; `avatar` responde `{ url, urls: { original, thumbnail, card, detail }, ... }`.
 
 Delivery `days.*.n` son **índices** de `timeRanges` (máx 3 por día). Pickup máx 2. Precios delivery en **centavos**.
 

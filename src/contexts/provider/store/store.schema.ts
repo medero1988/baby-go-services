@@ -4,6 +4,7 @@ import {
   AttentionSchedule,
   PickupSchedule,
   StoreAddress,
+  StoreAvatar,
   StoreBankAccount,
   StoreFunnelMeta,
   StripeConnectStatus,
@@ -35,8 +36,22 @@ export class Store {
   @Prop({ required: true, trim: true })
   cellPhone: string;
 
-  @Prop({ trim: true })
-  avatar?: string;
+  /**
+   * Avatar en Cloudinary (mismo modelo que product medias).
+   * Legacy: puede existir como string URL en docs viejos.
+   */
+  @Prop({
+    type: {
+      url: { type: String, required: true, trim: true },
+      publicId: { type: String, required: false, trim: true },
+      width: { type: Number, required: false },
+      height: { type: Number, required: false },
+      format: { type: String, required: false, trim: true },
+      bytes: { type: Number, required: false },
+    },
+    required: false,
+  })
+  avatar?: StoreAvatar | string;
 
   /** Horario de delivery (`AttentionSchedule`); Mixed para flexibilidad de `days`. */
   @Prop({ type: MongooseSchema.Types.Mixed, required: false })

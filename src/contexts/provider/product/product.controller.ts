@@ -11,8 +11,6 @@ import {
   Query,
   UploadedFiles,
   UseInterceptors,
-  UsePipes,
-  ValidationPipe,
   Body,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
@@ -31,12 +29,7 @@ const MEDIA_UPLOAD = {
   limits: { fileSize: 5 * 1024 * 1024, files: 1 },
 };
 
-/** Multipart no pasa por el ValidationPipe global (forbidNonWhitelisted rompe form-data). */
-const MultipartPipe = new ValidationPipe({
-  whitelist: false,
-  forbidNonWhitelisted: false,
-  transform: true,
-});
+const MEDIA_FIELD_NAMES = new Set(['media', 'file', 'image', 'photo']);
 
 /**
  * Productos del provider.
@@ -89,9 +82,8 @@ export class ProductController {
     );
   }
 
-  /** Subir foto (multipart; field `media`, `file`, `image` o `photo`). */
+  /** Subir foto al bucket (multipart; preferí field `media`). */
   @Post('/:id/medias')
-  @UsePipes(MultipartPipe)
   @UseInterceptors(AnyFilesInterceptor(MEDIA_UPLOAD))
   uploadMedia(
     @Param('id') id: string,
@@ -101,13 +93,12 @@ export class ProductController {
     return this.productService.addMedia(
       this.parseId(id, 'invalid_product_id'),
       user.id,
-      files?.[0],
+      pickMediaFile(files),
     );
   }
 
-  /** Reemplazar una foto. */
+  /** Reemplazar una foto en el bucket. */
   @Put('/:id/medias/:mediaId')
-  @UsePipes(MultipartPipe)
   @UseInterceptors(AnyFilesInterceptor(MEDIA_UPLOAD))
   replaceMedia(
     @Param('id') id: string,
@@ -119,11 +110,11 @@ export class ProductController {
       this.parseId(id, 'invalid_product_id'),
       this.parseId(mediaId, 'invalid_media_id'),
       user.id,
-      files?.[0],
+      pickMediaFile(files),
     );
   }
 
-  /** Eliminar una foto. */
+  /** Eliminar una foto (DB + bucket). */
   @Delete('/:id/medias/:mediaId')
   @HttpCode(200)
   deleteMedia(
@@ -134,6 +125,16 @@ export class ProductController {
     return this.productService.deleteMedia(
       this.parseId(id, 'invalid_product_id'),
       this.parseId(mediaId, 'invalid_media_id'),
+      user.id,
+    );
+  }
+
+  /** Eliminar producto + todas sus medias del bucket. */
+  @Delete('/:id')
+  @HttpCode(200)
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.productService.remove(
+      this.parseId(id, 'invalid_product_id'),
       user.id,
     );
   }
@@ -149,4 +150,16 @@ export class ProductController {
       user.id,
     );
   }
+}
+
+/** Prefiere `media`; si no, primer archivo con field conocido. */
+function pickMediaFile(
+  files?: Express.Multer.File[],
+): Express.Multer.File | undefined {
+  if (!files?.length) return undefined;
+  return (
+    files.find((f) => MEDIA_FIELD_NAMES.has(f.fieldname)) ??
+    files.find((f) => f.fieldname === 'media') ??
+    files[0]
+  );
 }

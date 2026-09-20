@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}}\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Connect.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary HTTPS.\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
+    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}}\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Connect.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary (mismo patrón que product medias: `avatar.url` + `avatar.urls`).\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -48,7 +48,7 @@
                 "store"
               ]
             },
-            "description": "Bearer provider. Store 1:1 del token. 404 `store_not_found` si todavía no creó perfil.\nRespuesta: id, name, avatar, country, address, cellPhone, delivery, customerPickup, stripeConnect, bankAccount (sin IBAN completo), meta."
+            "description": "Bearer provider. Store 1:1 del token. 404 `store_not_found` si todavía no creó perfil.\nRespuesta: id, name, avatar `{ url, urls... }`, country, address, cellPhone, delivery, customerPickup, stripeConnect, bankAccount (sin IBAN completo), meta."
           },
           "response": []
         },
@@ -206,7 +206,7 @@
                 "avatar"
               ]
             },
-            "description": "multipart field **`avatar`** tipo File (PNG/JPEG/WEBP/GIF, máx 5MB). NO setear Content-Type a mano.\nSe sube a Cloudinary; `store.avatar` queda HTTPS."
+            "description": "multipart field **`avatar`** tipo File (PNG/JPEG/WEBP/GIF, máx 5MB). NO setear Content-Type a mano.\nMisma carga que product medias: Cloudinary bucket `avatars/{storeId}`.\n`store.avatar` responde `{ url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }` (docs legacy string se normalizan)."
           },
           "response": []
         },

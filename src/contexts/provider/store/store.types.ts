@@ -95,12 +95,40 @@ export interface StoreBankAccount {
   externalAccountId?: string;
 }
 
+/** Avatar persistido (Cloudinary / storage). */
+export interface StoreAvatar {
+  url: string;
+  publicId?: string;
+  width?: number;
+  height?: number;
+  format?: string;
+  bytes?: number;
+}
+
+export type StoreAvatarUrls = {
+  original: string;
+  thumbnail: string;
+  card: string;
+  detail: string;
+};
+
+/** Avatar en respuestas API (incluye vistas derivadas). */
+export type StoreAvatarResponse = {
+  url: string;
+  width?: number;
+  height?: number;
+  format?: string;
+  bytes?: number;
+  urls: StoreAvatarUrls;
+};
+
 /** Respuesta de creación de perfil de tienda */
 export interface StoreProfileResponse {
   id: string;
   userId: string;
   name: string;
-  avatar?: string;
+  /** Avatar con URL original + vistas (mismo patrón que product medias). */
+  avatar?: StoreAvatarResponse;
   country: string;
   address: StoreAddress;
   cellPhone: string;

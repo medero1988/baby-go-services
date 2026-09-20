@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
     "name": "Baby Go — Provider Products",
-    "description": "Productos del provider. Bearer JWT. Store 1:1 (no mandar storeId).\n\n**List:** GET /v1/products?page=1&limit=20&status=&category= → `{ items, page, limit, total, totalPages }` (default page=1, limit=20, máx 100).\n**Create:** `{ category, title, description, price, attributes? }` → draft. `title` único → `title_not_available`.\n**PATCH /:id** parcial: title, description, category, price (merge; offer:null quita oferta), attributes (merge; null borra key), status.\n**Medias:** POST /:id/medias form-data field `media` (File). Máx 8 / 5MB. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }`.\n**Save:** POST /:id/save → active. Completitud: title, description, category, price.list>0, attributes, ≥1 foto. 400 `product_incomplete` + `missing[]`.\n\nVariables: token, productId, mediaId.",
+    "description": "Productos del provider. Bearer JWT. Store 1:1 (no mandar storeId).\n\n**List:** GET /v1/products?page=1&limit=20&status=&category= → `{ items, page, limit, total, totalPages }` (default page=1, limit=20, máx 100).\n**Create:** `{ category, title, description, price, attributes? }` → draft. `title` único → `title_not_available`.\n**PATCH /:id** parcial: title, description, category, price (merge; offer:null quita oferta), attributes (merge; null borra key), status.\n**DELETE /:id** borra producto + todas las medias del bucket; lo saca de bundles (borra bundles con <2 productos).\n**Medias:** POST /:id/medias form-data field `media` (File). Máx 8 / 5MB. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }`.\n**DELETE media** también borra del bucket.\n**Save:** POST /:id/save → active. Completitud: title, description, category, price.list>0, attributes, ≥1 foto. 400 `product_incomplete` + `missing[]`.\n\nVariables: token, productId, mediaId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -960,7 +960,7 @@
                 "medias"
               ]
             },
-            "description": "Body → form-data → key `media` tipo **File** (no Text).\nSeleccioná un .jpg/.png. Si ves triángulo amarillo, volvé a elegir el archivo.\nNO pongas header Content-Type a mano (Postman arma el boundary).\nCloudinary. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }` → guarda `mediaId`."
+            "description": "Body → form-data → key `media` tipo **File** (no Text).\nSi Postman muestra **Re-select the media file** o triángulo amarillo, volvé a elegir el archivo (si no, el body va vacío y el API responde `media_missing`).\nHeaders: desactivá Content-Type si aparece a mano — Postman tiene que calcular el boundary.\nCloudinary. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }` → guarda `mediaId`."
           },
           "response": []
         },
@@ -1028,7 +1028,7 @@
                 "{{mediaId}}"
               ]
             },
-            "description": "Borra la foto del producto y de Cloudinary. `{ success: true }`."
+            "description": "Borra la foto del producto **y de Cloudinary** (no deja basura en el bucket). `{ success: true }`."
           },
           "response": []
         }
@@ -1055,6 +1055,31 @@
               ]
             },
             "description": "Pasa de `draft` → `active`.\nRequiere title, description, category, price.list > 0, attributes con contenido y ≥1 media.\nSi falta algo → 400 `product_incomplete` + `missing: [...]`.\nSi hay oferta inválida → 400 `invalid_offer_price` / `invalid_offer_dates`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Eliminar producto",
+      "item": [
+        {
+          "name": "4. Delete product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "Borra el producto y **todas** sus medias del bucket Cloudinary.\nTambién lo saca de bundles del provider; si un bundle queda con <2 productos, se elimina el bundle.\nRespuesta `{ success: true }`. 404 `product_not_found`."
           },
           "response": []
         }

@@ -6,6 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { StorageService } from '../../../shared/storage/storage.service';
+import { Bundle, BundleDocument } from '../bundle/bundle.schema';
 import { StoreService } from '../store/store.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -27,6 +28,8 @@ export class ProductService {
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Bundle.name)
+    private readonly bundleModel: Model<BundleDocument>,
     private readonly storeService: StoreService,
     private readonly storage: StorageService,
   ) {}
@@ -210,7 +213,7 @@ export class ProductService {
       throw new BadRequestException({
         error: 'media_missing',
         message:
-          'Enviá una imagen en form-data (field `media`, tipo File). No pongas Content-Type a mano.',
+          'Enviá form-data field `media` tipo File. En Postman: Headers → desactivá Content-Type (Postman arma el boundary). Si hay triángulo amarillo, volvé a elegir el archivo.',
       });
     }
 
@@ -275,7 +278,7 @@ export class ProductService {
       throw new BadRequestException({
         error: 'media_missing',
         message:
-          'Enviá una imagen en form-data (field `media`, tipo File). No pongas Content-Type a mano.',
+          'Enviá form-data field `media` tipo File. En Postman: Headers → desactivá Content-Type (Postman arma el boundary). Si hay triángulo amarillo, volvé a elegir el archivo.',
       });
     }
 
@@ -298,10 +301,7 @@ export class ProductService {
     }
 
     const previous = product.medias[idx];
-    await this.storage.delete({
-      url: previous.url,
-      publicId: previous.publicId,
-    });
+    await this.deleteMediaFromBucket(previous);
 
     const newMediaId = new Types.ObjectId();
     const stored = await this.writeMediaFile(
@@ -326,7 +326,7 @@ export class ProductService {
     return this.toMediaResponse(product.medias[idx]);
   }
 
-  /** DELETE /products/:id/medias/:mediaId */
+  /** DELETE /products/:id/medias/:mediaId — borra DB + bucket. */
   async deleteMedia(
     productId: string,
     mediaId: string,
@@ -338,10 +338,28 @@ export class ProductService {
       throw new NotFoundException({ error: 'media_not_found' });
     }
 
-    await this.storage.delete({ url: media.url, publicId: media.publicId });
+    await this.deleteMediaFromBucket(media);
     product.medias = product.medias.filter((m) => String(m._id) !== mediaId);
     product.markModified('medias');
     await product.save();
+    return { success: true };
+  }
+
+  /**
+   * DELETE /products/:id — borra producto, todas sus medias del bucket
+   * y lo saca de bundles del provider (borra bundles que queden con <2 productos).
+   */
+  async remove(
+    productId: string,
+    userId: string,
+  ): Promise<{ success: true }> {
+    const product = await this.requireOwnedProduct(productId, userId);
+
+    await this.deleteAllMediasFromBucket(product.medias ?? []);
+
+    await this.detachProductFromBundles(userId, productId);
+    await this.productModel.deleteOne({ _id: product._id }).exec();
+
     return { success: true };
   }
 
@@ -401,6 +419,47 @@ export class ProductService {
       throw new NotFoundException({ error: 'product_not_found' });
     }
     return product;
+  }
+
+  private async deleteMediaFromBucket(media: ProductMedia): Promise<void> {
+    await this.storage.delete({
+      url: media.url,
+      publicId: media.publicId,
+    });
+  }
+
+  private async deleteAllMediasFromBucket(
+    medias: ProductMedia[],
+  ): Promise<void> {
+    await Promise.all(medias.map((m) => this.deleteMediaFromBucket(m)));
+  }
+
+  /** Saca el producto de bundles; elimina bundles que queden inválidos (<2 items). */
+  private async detachProductFromBundles(
+    userId: string,
+    productId: string,
+  ): Promise<void> {
+    const oid = new Types.ObjectId(productId);
+    await this.bundleModel
+      .updateMany(
+        {
+          $expr: { $eq: [{ $toString: '$userId' }, userId] },
+          productIds: oid,
+        },
+        { $pull: { productIds: oid } },
+      )
+      .exec();
+
+    await this.bundleModel
+      .deleteMany({
+        $expr: { $eq: [{ $toString: '$userId' }, userId] },
+        $or: [
+          { productIds: { $exists: false } },
+          { productIds: { $size: 0 } },
+          { productIds: { $size: 1 } },
+        ],
+      })
+      .exec();
   }
 
   private async assertTitleAvailable(

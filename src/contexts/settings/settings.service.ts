@@ -96,7 +96,10 @@ export class SettingsService {
       const countries =
         (legacy as { supportedCountries?: unknown }).supportedCountries ??
         DEFAULT_SUPPORTED_COUNTRIES;
-      await this.ensureSetting(SUPPORTED_COUNTRIES_CODE, countries as SettingValue);
+      await this.ensureSetting(
+        SUPPORTED_COUNTRIES_CODE,
+        countries as SettingValue,
+      );
       await this.settingsModel.deleteOne({ _id: legacy._id }).exec();
     }
 
@@ -110,13 +113,12 @@ export class SettingsService {
     );
   }
 
-  private async ensureSetting(code: string, value: SettingValue): Promise<void> {
+  private async ensureSetting(
+    code: string,
+    value: SettingValue,
+  ): Promise<void> {
     await this.settingsModel
-      .updateOne(
-        { code },
-        { $setOnInsert: { code, value } },
-        { upsert: true },
-      )
+      .updateOne({ code }, { $setOnInsert: { code, value } }, { upsert: true })
       .exec();
   }
 
