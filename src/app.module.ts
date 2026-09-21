@@ -4,17 +4,17 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { ApiTokenGuard, JwtAuthGuard } from './auth/guards';
 import { ConfigModule } from './config';
 import { EnvService } from './config/env.service';
 import { ClientModule } from './contexts/client/client.module';
 import { PaymentsModule } from './contexts/payments/payments.module';
 import { ProviderModule } from './contexts/provider/provider.module';
 import { SettingsModule } from './contexts/settings/settings.module';
+import { MailModule } from './shared/mail/mail.module';
 import { StripeModule } from './shared/stripe/stripe.module';
 import { StorageModule } from './shared/storage/storage.module';
 import { TwilioModule } from './shared/twilio/twilio.module';
-import { MailModule } from './shared/mail/mail.module';
 
 @Module({
   imports: [
@@ -34,6 +34,10 @@ import { MailModule } from './shared/mail/mail.module';
     SettingsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ApiTokenGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}
