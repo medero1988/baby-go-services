@@ -7,12 +7,17 @@ import { EnvConfig } from './env.types';
 export default (): EnvConfig => {
   const port = process.env.PORT ?? '3000';
   const mongoPort = process.env.MONGODB_PORT ?? '27017';
+  const apiToken = process.env.API_TOKEN;
+
+  if (!apiToken) {
+    throw new Error('API_TOKEN is not defined in the environment variables');
+  }
 
   return {
     app: {
       port: parseInt(port, 10),
       nodeEnv: process.env.NODE_ENV ?? 'development',
-      apiToken: process.env.API_TOKEN ?? '',
+      apiToken,
     },
     database: {
       mongoUri:
