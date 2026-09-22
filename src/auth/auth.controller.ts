@@ -49,7 +49,6 @@ export class AuthController {
 
   @Get('account')
   getAccount(@CurrentUser() user: { _id: string }) {
-    console.log('>>> Getting account for user:', user._id);
     return this.authService.findAccount(String(user._id));
   }
 
