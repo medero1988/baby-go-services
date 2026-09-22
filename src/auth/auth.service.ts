@@ -65,6 +65,7 @@ export const AUTH_ERRORS = {
   ACCOUNT_NOT_FOUND: 'account_not_found',
   EXPIRED_REFRESH_TOKEN: 'expired_refresh_token',
   INVALID_REFRESH_TOKEN: 'invalid_refresh_token',
+  REFRESH_TOKEN_REUSE_DETECTED: 'refresh_token_reuse_detected',
 } as const;
 
 const BCRYPT_ROUNDS = 12;
@@ -382,6 +383,10 @@ export class AuthService {
           passwordRecoveryCode: '',
           passwordRecoveryCodeExpiresAt: '',
         },
+        // Invalida también cualquier access token ya emitido (no solo los
+        // refresh tokens), para que el cambio de contraseña cierre sesión
+        // de inmediato en todos los dispositivos.
+        $inc: { tokenVersion: 1 },
       })
       .exec();
 
@@ -404,13 +409,28 @@ export class AuthService {
     expiresAt: string;
   }> {
     const tokenHash = hashToken(refreshToken);
-    const stored = await this.refreshTokenModel
-      .findOne({ tokenHash, revoked: false })
-      .exec();
+    // No se filtra por revoked aquí: un token ya revocado que vuelve a
+    // presentarse es indicio de robo/replay (ver chequeo de reuso abajo).
+    const stored = await this.refreshTokenModel.findOne({ tokenHash }).exec();
     if (!stored) {
       throw new UnauthorizedException({
         error: AUTH_ERRORS.INVALID_REFRESH_TOKEN,
         reason: 'Expired refresh token',
+      });
+    }
+    if (stored.revoked) {
+      // Reuso de un refresh token ya rotado/revocado: tratamos esto como
+      // evidencia de robo y revocamos toda la familia de sesiones del
+      // usuario, no solo esta petición.
+      await this.refreshTokenModel
+        .updateMany(
+          { userId: stored.userId, revoked: false },
+          { $set: { revoked: true } },
+        )
+        .exec();
+      throw new UnauthorizedException({
+        error: AUTH_ERRORS.REFRESH_TOKEN_REUSE_DETECTED,
+        reason: 'Refresh token reuse detected; all sessions revoked',
       });
     }
     if (stored.expiresAt.getTime() <= Date.now()) {
@@ -578,6 +598,7 @@ export class AuthService {
     const payload = {
       sub: String(user._id),
       email: user.email,
+      tokenVersion: user.tokenVersion ?? 0,
     };
     const signOptions: JwtSignOptions = {
       expiresIn: this.env.jwtExpiresIn as JwtSignOptions['expiresIn'],

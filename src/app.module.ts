@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -19,6 +20,9 @@ import { TwilioModule } from './shared/twilio/twilio.module';
 @Module({
   imports: [
     ConfigModule,
+    // Límite global por defecto; los endpoints sensibles de auth aplican
+    // límites más estrictos con @Throttle(...).
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
     AuthModule,
     TwilioModule,
     MailModule,
@@ -36,6 +40,7 @@ import { TwilioModule } from './shared/twilio/twilio.module';
   controllers: [AppController],
   providers: [
     AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: ApiTokenGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],

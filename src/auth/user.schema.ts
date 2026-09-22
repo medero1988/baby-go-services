@@ -44,6 +44,13 @@ export class User {
 
   @Prop()
   passwordRecoveryCodeExpiresAt?: Date;
+
+  /**
+   * Se incrementa para invalidar todos los access tokens ya emitidos
+   * (ej. tras un cambio de contraseña), sin esperar a que expiren.
+   */
+  @Prop({ default: 0 })
+  tokenVersion: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

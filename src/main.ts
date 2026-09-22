@@ -16,9 +16,14 @@ async function bootstrap() {
   const uploadsDir = path.join(process.cwd(), 'uploads');
   app.use('/api/uploads', express.static(uploadsDir));
 
-  // Habilitar CORS
+  // Habilitar CORS.
+  // CORS_ORIGIN es obligatorio en producción (validado en configuration.ts).
+  // En desarrollo, si no está definido, se refleja el origen de la petición
+  // en vez de usar '*', que es inválido junto con credentials: true.
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: env.corsOrigin
+      ? env.corsOrigin.split(',').map((o) => o.trim())
+      : true,
     credentials: true,
   });
 

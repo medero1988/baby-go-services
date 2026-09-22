@@ -11,6 +11,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role?: string;
+  tokenVersion?: number;
 }
 
 @Injectable()
@@ -22,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('auth.jwtSecret') ?? 'default-secret',
+      secretOrKey: config.getOrThrow<string>('auth.jwtSecret'),
     });
   }
 
@@ -30,6 +31,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const user = await this.userModel.findById(payload.sub).lean().exec();
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+    const currentTokenVersion = user.tokenVersion ?? 0;
+    if ((payload.tokenVersion ?? 0) !== currentTokenVersion) {
+      throw new UnauthorizedException('Token has been revoked');
     }
     return toAuthUser(user);
   }
