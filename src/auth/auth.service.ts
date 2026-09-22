@@ -598,7 +598,7 @@ export class AuthService {
     const payload = {
       sub: String(user._id),
       email: user.email,
-      tokenVersion: user.tokenVersion ?? 0,
+      tokenVersion: user.tokenVersion,
     };
     const signOptions: JwtSignOptions = {
       expiresIn: this.env.jwtExpiresIn as JwtSignOptions['expiresIn'],
