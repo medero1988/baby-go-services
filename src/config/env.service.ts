@@ -80,6 +80,10 @@ export class EnvService {
     return this.app.apiToken;
   }
 
+  get corsOrigin(): string | undefined {
+    return this.app.corsOrigin;
+  }
+
   get mongoUri(): string {
     return this.database.mongoUri;
   }

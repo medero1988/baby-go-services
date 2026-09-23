@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ROUTES } from '../common/constants/api-routes.constants';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -42,6 +43,7 @@ export class AuthController {
   // ——— Local account ———
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('account')
   createAccount(@Body() dto: CreateAccountDto) {
     return this.authService.createAccount(dto);
@@ -76,6 +78,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('resend-email-code')
   @HttpCode(200)
   resendEmailCode(@Body() dto: ResendEmailCodeDto) {
@@ -83,6 +86,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.loginLocal(dto);
@@ -95,12 +99,14 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('access-refresh')
   refresh(@Body() dto: RefreshAccessDto) {
     return this.authService.refreshAccess(dto.refreshToken);
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('password-recovery')
   @HttpCode(200)
   passwordRecovery(@Body() dto: PasswordRecoveryDto) {
@@ -108,6 +114,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('resend-password-recovery')
   @HttpCode(200)
   resendPasswordRecovery(@Body() dto: ResendPasswordRecoveryDto) {
@@ -115,6 +122,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('new-password')
   @HttpCode(200)
   newPassword(@Body() dto: NewPasswordDto) {

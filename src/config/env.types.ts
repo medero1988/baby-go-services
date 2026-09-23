@@ -6,6 +6,8 @@ export interface AppConfig {
   port: number;
   nodeEnv: string;
   apiToken: string;
+  /** Orígenes permitidos para CORS (coma-separados). Requerido en producción. */
+  corsOrigin?: string;
 }
 
 export interface DatabaseConfig {
