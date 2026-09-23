@@ -41,6 +41,7 @@ export class Bundle {
   category: string[];
 
   @Prop({
+    type: String,
     required: true,
     enum: ['draft', 'active', 'inactive'],
     default: 'draft',
