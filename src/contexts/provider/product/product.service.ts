@@ -349,10 +349,7 @@ export class ProductService {
    * DELETE /products/:id — borra producto, todas sus medias del bucket
    * y lo saca de bundles del provider (borra bundles que queden con <2 productos).
    */
-  async remove(
-    productId: string,
-    userId: string,
-  ): Promise<{ success: true }> {
+  async remove(productId: string, userId: string): Promise<{ success: true }> {
     const product = await this.requireOwnedProduct(productId, userId);
 
     await this.deleteAllMediasFromBucket(product.medias ?? []);

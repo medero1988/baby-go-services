@@ -1,0 +1,97 @@
+{
+  "info": {
+    "_postman_id": "e5f6a7b8-c9d0-1234-ef01-456789012345",
+    "name": "Baby Go — Client Search",
+    "description": "Catálogo público de clientes.\n\n**POST /v1/search?offset=0&limit=20** sin JWT.\nBody vacío lista productos y combos `active`.\nRespuesta `{ data, total, nextPage }`.\n`nextPage` es `{ offset, limit }` o `null`.\n`data[].kind`: `product` | `bundle`.\nCada ítem incluye `store.delivery` y `store.customerPickup` (timeRanges).\n\nFiltros opcionales:\n- `destination.country` = `store.country`. `city` busca en addressLine1/2.\n- `categories[].name` = id del taxonomy (`stroller`, `bike`, …). `types` matchea type/style/eceGroup/frameType/boxType/size. `accessories` matchea `attributes.accessories`.\n- `acquisition` / `devolution`: `delivery` | `customer_pickup` + `time` (minutos desde 00:00).\n- `rentalPeriod` valida fechas y elige el día del horario. No filtra stock.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "noauth" },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "1. Catálogo (sin filtros)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "search"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Público. Productos y combos active de todas las stores."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Por país y categoría",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination\": {\n    \"country\": \"NL\",\n    \"city\": \"Amsterdam\"\n  },\n  \"categories\": [\n    {\n      \"name\": \"stroller\",\n      \"accessories\": [\"rain-coat\"]\n    },\n    {\n      \"name\": \"bike\",\n      \"types\": [\"city\", \"kids\"]\n    }\n  ],\n  \"rentalPeriod\": {\n    \"start\": \"2026-10-01\",\n    \"end\": \"2026-10-07\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "search"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "`city` matchea addressLine1/2. `types` en bike = attributes.type. No filtra disponibilidad de fechas."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Delivery + retiro con horario",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination\": {\n    \"country\": \"ES\"\n  },\n  \"rentalPeriod\": {\n    \"start\": \"2026-10-03T10:00:00.000Z\",\n    \"end\": \"2026-10-05T18:00:00.000Z\"\n  },\n  \"acquisition\": {\n    \"type\": \"delivery\",\n    \"address\": \"Calle Mayor 1, Madrid\",\n    \"time\": 600\n  },\n  \"devolution\": {\n    \"type\": \"customer_pickup\",\n    \"time\": 1080\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/search?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "search"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "`time` = minutos desde 00:00 (600 = 10:00, 1080 = 18:00). Tiene que caer en un timeRange de la store ese día (o available24h). `address` no filtra distancia."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

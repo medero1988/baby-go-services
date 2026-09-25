@@ -1,6 +1,6 @@
 # Baby Go — Postman (contrato para front)
 
-Importá las 6 collections + el environment `Baby-Go.postman_environment.json`.
+Importá las 7 collections + el environment `Baby-Go.postman_environment.json`.
 
 **Base URL:** `{{baseUrl}}` = `http://localhost:3000/api`  
 Rutas reales: `http://localhost:3000/api/v1/...`
@@ -29,6 +29,7 @@ Hoy **no hay `role` en el usuario**. Provider vs client se infiere por el flujo 
 | `baby-go-provider-products.postman_collection.json` | provider — catálogo | `/v1/products` |
 | `baby-go-provider-bundles.postman_collection.json` | provider — combos | `/v1/bundles` |
 | `baby-go-payments.postman_collection.json` | client — Stripe | `/v1/payments` |
+| `baby-go-client-search.postman_collection.json` | client — catálogo | `/v1/search` |
 
 Orden de montaje provider: **Auth → Store → Products → Bundles**. Settings GET es público (picker de país/tel).
 
@@ -122,3 +123,19 @@ Respuesta incluye `clientSecret` + `publishableKey` para Stripe.js.
 `confirm-test` solo dev. Transfer al terminar el alquiler.
 
 Webhook: no desde Postman; Stripe CLI → `/api/webhooks/stripe`.
+
+---
+
+## Search (cliente) `POST /v1/search`
+
+Público (sin JWT). Query `offset` (default 0) y `limit` (default 20, máx 100).
+
+Body opcional. Vacío → productos y combos `active` de todas las stores.
+
+- `destination.country` matchea `store.country`. `city` se busca en `addressLine1/2` (la store no tiene campo city).
+- `categories[].name` es el id del taxonomy (`stroller`, `bike`, `crib`, …). `types` matchea atributos `type|style|eceGroup|frameType|boxType|size`. `accessories` matchea `attributes.accessories`.
+- `rentalPeriod` valida el rango y define el día para cruzar horarios. No hay calendario de stock todavía.
+- `acquisition` / `devolution`: `type` `delivery` | `customer_pickup`, `time` en minutos desde 00:00 contra `timeRanges` de la store. `address` se acepta y no filtra distancia.
+- Cada ítem trae `store.delivery` y `store.customerPickup` (`timeRanges`, `days`).
+
+Respuesta: `{ data, total, nextPage }` (`nextPage` es `{ offset, limit }` o `null`). `data[].kind`: `product` | `bundle`.
