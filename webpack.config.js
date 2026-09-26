@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const TerserPlugin = require('terser-webpack-plugin');
 
 /**
  * Extiende el webpack config por defecto de Nest (target: node, externals
@@ -22,5 +23,19 @@ module.exports = function (options) {
         'process.env.NODE_ENV': JSON.stringify(nodeEnv),
       }),
     ],
+    // Nest usa los nombres de clase como tokens de DI (p.ej. `Payment.name`
+    // en MongooseModule.forFeature vs `@InjectModel('Payment')`). Si Terser
+    // los mangle, los tokens dejan de coincidir y la app no arranca.
+    optimization: {
+      ...options.optimization,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+        }),
+      ],
+    },
   };
 };
