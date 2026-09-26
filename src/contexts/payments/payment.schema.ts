@@ -31,6 +31,7 @@ export class Payment {
   currency: string;
 
   @Prop({
+    type: String,
     required: true,
     enum: [
       'requires_payment_method',
