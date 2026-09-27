@@ -70,6 +70,7 @@ export class Product {
   medias: ProductMedia[];
 
   @Prop({
+    type: String,
     required: true,
     enum: ['draft', 'active', 'inactive'],
     default: 'draft',
