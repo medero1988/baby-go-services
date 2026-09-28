@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}}\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Connect.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary (mismo patrón que product medias: `avatar.url` + `avatar.urls`).\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
+    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}} + `x-api-token: {{apiToken}}` (pre-request de la collection)\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Connect.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary (mismo patrón que product medias: `avatar.url` + `avatar.urls`).\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -15,10 +15,26 @@
       }
     ]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ApiTokenGuard global: todas las rutas (incluso las públicas) exigen x-api-token.",
+          "pm.request.headers.upsert({ key: 'x-api-token', value: pm.variables.get('apiToken') || '' });"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "apiToken",
+      "value": ""
     },
     {
       "key": "token",
@@ -487,7 +503,7 @@
                 }
               ]
             },
-            "description": "Query opcional `status`. Pagos de la store del token."
+            "description": "Query opcional `status`: requires_payment_method | requires_confirmation | requires_action | processing | succeeded | failed | canceled | transferred | refunded. Pagos de la store del token."
           },
           "response": []
         },

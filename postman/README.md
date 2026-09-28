@@ -5,7 +5,11 @@ Importá las 7 collections + el environment `Baby-Go.postman_environment.json`.
 **Base URL:** `{{baseUrl}}` = `http://localhost:3000/api`  
 Rutas reales: `http://localhost:3000/api/v1/...`
 
-**Auth:** `Authorization: Bearer {{token}}` (collection auth). Los requests marcados *público* tienen auth `noauth`.
+**API token (todas las rutas):** header `x-api-token: {{apiToken}}`. Lo exige el `ApiTokenGuard` global, **incluso en rutas públicas** (`@Public()` solo saltea el JWT). Cada collection lo inyecta con un pre-request script a nivel collection; cargá `apiToken` en el environment con el valor de `API_TOKEN` del `.env`. Sin header o incorrecto → 401 `Invalid or missing API token`.
+
+**Auth:** `Authorization: Bearer {{token}}` (collection auth). Los requests marcados *público* tienen auth `noauth`. En local con `ENABLE_DEV_AUTH_BYPASS=true`, un request sin `Authorization` (o con `x-dev-bypass: true`) usa un usuario dev.
+
+**Rate limit:** 30 req/min por defecto. Auth sensibles (create account, resend-email-code, login, password-recovery, resend-password-recovery, new-password) → 5/min; access-refresh → 10/min. Excedido → **429**.
 
 **Errores:** Nest `BadRequestException` / `NotFoundException`:
 
@@ -44,7 +48,13 @@ Create account body: `{ name, lastName, email, password }` (password ≥ 8). Res
 
 Login: `{ email, password }` → `{ accessToken, refreshToken, expiresAt, user }`. Guardá tokens.
 
-Errores: `email_already_registered`, `invalid_credentials`, `email_not_verified`, `invalid_code`, `code_expired`, `account_not_found`, `invalid_refresh_token`, `expired_refresh_token`.
+Refresh: `{ refreshToken }` → `{ token, refreshToken, expiresAt }` (**ojo: el access viene en `token`**, no `accessToken`). Rota el refresh. Si se presenta un refresh ya rotado → 401 `refresh_token_reuse_detected` y se revocan **todas** las sesiones del usuario.
+
+New password: revoca refresh tokens y sube `tokenVersion` → los access tokens previos dan 401 `Token has been revoked`.
+
+Logout / resend / password-recovery / new-password responden `{ ok: true }`. Delete account → `{ ok: true, deleted: { user, refreshTokens, stores } }`.
+
+Errores: `email_already_registered`, `invalid_credentials`, `email_not_verified`, `invalid_code`, `code_expired`, `account_not_found`, `invalid_refresh_token`, `expired_refresh_token`, `refresh_token_reuse_detected`.
 
 ---
 
@@ -122,13 +132,15 @@ DELETE borra el bundle, no los productos.
 Respuesta incluye `clientSecret` + `publishableKey` para Stripe.js.  
 `confirm-test` solo dev. Transfer al terminar el alquiler.
 
-Webhook: no desde Postman; Stripe CLI → `/api/webhooks/stripe`.
+Webhook: no desde Postman; Stripe CLI → `/api/webhooks/stripe`. ⚠️ Hoy el `ApiTokenGuard` global también cubre el webhook y Stripe no manda `x-api-token` → 401.
+
+Movimientos del provider: `GET /v1/store/movements?status=` (ver collection Store).
 
 ---
 
 ## Search (cliente) `POST /v1/search`
 
-Público (sin JWT). Query `offset` (default 0) y `limit` (default 20, máx 100).
+Público (sin JWT, pero con `x-api-token`). Query `offset` (default 0) y `limit` (default 20, máx 100).
 
 Body opcional. Vacío → productos y combos `active` de todas las stores.
 

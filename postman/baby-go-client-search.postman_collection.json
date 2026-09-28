@@ -2,14 +2,30 @@
   "info": {
     "_postman_id": "e5f6a7b8-c9d0-1234-ef01-456789012345",
     "name": "Baby Go — Client Search",
-    "description": "Catálogo público de clientes.\n\n**POST /v1/search?offset=0&limit=20** sin JWT.\nBody vacío lista productos y combos `active`.\nRespuesta `{ data, total, nextPage }`.\n`nextPage` es `{ offset, limit }` o `null`.\n`data[].kind`: `product` | `bundle`.\nCada ítem incluye `store.delivery` y `store.customerPickup` (timeRanges).\n\nFiltros opcionales:\n- `destination.country` = `store.country`. `city` busca en addressLine1/2.\n- `categories[].name` = id del taxonomy (`stroller`, `bike`, …). `types` matchea type/style/eceGroup/frameType/boxType/size. `accessories` matchea `attributes.accessories`.\n- `acquisition` / `devolution`: `delivery` | `customer_pickup` + `time` (minutos desde 00:00).\n- `rentalPeriod` valida fechas y elige el día del horario. No filtra stock.",
+    "description": "Catálogo público de clientes.\n\n**POST /v1/search?offset=0&limit=20** sin JWT, pero con `x-api-token: {{apiToken}}` (lo agrega el pre-request de la collection).\nBody vacío lista productos y combos `active`.\nRespuesta `{ data, total, nextPage }`.\n`nextPage` es `{ offset, limit }` o `null`.\n`data[].kind`: `product` | `bundle`.\nCada ítem incluye `store.delivery` y `store.customerPickup` (timeRanges).\n\nFiltros opcionales:\n- `destination.country` = `store.country`. `city` busca en addressLine1/2.\n- `categories[].name` = id del taxonomy (`stroller`, `bike`, …). `types` matchea type/style/eceGroup/frameType/boxType/size. `accessories` matchea `attributes.accessories`.\n- `acquisition` / `devolution`: `delivery` | `customer_pickup` + `time` (minutos desde 00:00).\n- `rentalPeriod` valida fechas y elige el día del horario. No filtra stock.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": { "type": "noauth" },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ApiTokenGuard global: todas las rutas (incluso las públicas) exigen x-api-token.",
+          "pm.request.headers.upsert({ key: 'x-api-token', value: pm.variables.get('apiToken') || '' });"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "apiToken",
+      "value": ""
     }
   ],
   "item": [

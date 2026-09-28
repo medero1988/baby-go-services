@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "name": "Baby Go — Payments (Cliente)",
-    "description": "Pagos Stripe (cliente).\n\nBearer JWT del **cliente**. `amount` en **centavos**.\nCreate: `{ storeId, amount, orderId?, currency? }` → `{ clientSecret, publishableKey, payment }`.\nEn prod confirmar con Stripe.js + clientSecret. `confirm-test` solo local.\nTransfer al terminar el alquiler (status succeeded).\nWebhook: no Postman — Stripe CLI → /api/webhooks/stripe.",
+    "description": "Pagos Stripe (cliente).\n\nBearer JWT del **cliente** + `x-api-token: {{apiToken}}` (pre-request de la collection). `amount` en **centavos** (entero, mín 50).\nCreate: `{ storeId (mongoId), amount, orderId?, currency? }` → `{ clientSecret, publishableKey, payment }`.\nEn prod confirmar con Stripe.js + clientSecret. `confirm-test` solo local.\nTransfer al terminar el alquiler (status succeeded).\nWebhook: no Postman — Stripe CLI → /api/webhooks/stripe.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -15,10 +15,26 @@
       }
     ]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ApiTokenGuard global: todas las rutas (incluso las públicas) exigen x-api-token.",
+          "pm.request.headers.upsert({ key: 'x-api-token', value: pm.variables.get('apiToken') || '' });"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "apiToken",
+      "value": ""
     },
     {
       "key": "token",
@@ -164,7 +180,7 @@
                 "stripe"
               ]
             },
-            "description": "No probar manualmente en Postman. Usar Stripe CLI:\n\nstripe listen --forward-to localhost:3000/api/webhooks/stripe\n\nCopiar el whsec_... a STRIPE_WEBHOOK_SECRET en .env"
+            "description": "No probar manualmente en Postman. Usar Stripe CLI:\n\nstripe listen --forward-to localhost:3000/api/webhooks/stripe\n\nCopiar el whsec_... a STRIPE_WEBHOOK_SECRET en .env\n\n⚠️ Hoy el ApiTokenGuard global también aplica a esta ruta (`@Public()` solo saltea el JWT), así que Stripe recibe 401 `Invalid or missing API token` porque no manda `x-api-token`."
           },
           "response": []
         }

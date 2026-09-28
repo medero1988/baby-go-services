@@ -15,10 +15,26 @@
       }
     ]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ApiTokenGuard global: todas las rutas (incluso las públicas) exigen x-api-token.",
+          "pm.request.headers.upsert({ key: 'x-api-token', value: pm.variables.get('apiToken') || '' });"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "apiToken",
+      "value": ""
     },
     {
       "key": "token",

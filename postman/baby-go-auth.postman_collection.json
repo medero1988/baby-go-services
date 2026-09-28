@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-234567890123",
     "name": "Baby Go — Auth",
-    "description": "Auth local + social — contrato front.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api → rutas `/v1/auth/...`\n**Header:** Bearer {{token}} solo en GET/DELETE account y logout. El resto es público (auth: noauth).\n\n**Create account** `{ name, lastName, email, password }` — NO mandar `role`.\n**Login** `{ email, password }` → `{ accessToken, refreshToken, expiresAt, user }`.\n\nErrores: `email_already_registered`, `invalid_credentials`, `email_not_verified`, `invalid_code`, `code_expired`, `account_not_found`, `invalid_refresh_token`, `expired_refresh_token`.\n\nVariables: token, refreshToken, accountId. Login/refresh guardan tokens en collection + environment.",
+    "description": "Auth local + social — contrato front.\n\n**Base:** {{baseUrl}} = http://localhost:3000/api → rutas `/v1/auth/...`\n**Headers:** `x-api-token: {{apiToken}}` en TODOS los requests (lo agrega el pre-request de la collection). Bearer {{token}} solo en GET/DELETE account y logout. El resto es público (auth: noauth).\n\n**Rate limit:** create account, resend-email-code, login, password-recovery, resend-password-recovery, new-password → 5/min. access-refresh → 10/min. Resto → 30/min global. Excedido → 429.\n\n**Create account** `{ name, lastName, email, password }` — NO mandar `role`.\n**Login** `{ email, password }` → `{ accessToken, refreshToken, expiresAt, user }`.\n**Refresh** → `{ token, refreshToken, expiresAt }` (access en `token`).\n\nErrores: `email_already_registered`, `invalid_credentials`, `email_not_verified`, `invalid_code`, `code_expired`, `account_not_found`, `invalid_refresh_token`, `expired_refresh_token`, `refresh_token_reuse_detected`.\nNew password incrementa `tokenVersion`: todos los access tokens previos dan 401 `Token has been revoked`.\n\nVariables: apiToken, token, refreshToken, accountId. Login/refresh guardan tokens en collection + environment.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -15,10 +15,26 @@
       }
     ]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ApiTokenGuard global: todas las rutas (incluso las públicas) exigen x-api-token.",
+          "pm.request.headers.upsert({ key: 'x-api-token', value: pm.variables.get('apiToken') || '' });"
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "apiToken",
+      "value": ""
     },
     {
       "key": "token",
@@ -65,7 +81,7 @@
                 "account"
               ]
             },
-            "description": "Público. Body: `{ name, lastName, email, password }` (password ≥ 8).\nNO enviar `role` (el API lo rechaza: whitelist).\nRespuesta `{ id, name, lastName, email, emailVerified:false }`. Guardá `id` → accountId.\nErrores: `email_already_registered`."
+            "description": "Público. Rate limit 5/min. Body: `{ name, lastName, email, password }` (password ≥ 8).\nNO enviar `role` (el API lo rechaza: whitelist).\nRespuesta `{ id, name, lastName, email, emailVerified:false }`. Guardá `id` → accountId.\nErrores: `email_already_registered`."
           },
           "response": [],
           "event": [
@@ -195,7 +211,7 @@
                 "resend-email-code"
               ]
             },
-            "description": "Público. `{ accountId }`. Reenvía el código por email."
+            "description": "Público. Rate limit 5/min. `{ accountId }` → `{ ok: true }`. Reenvía el código por email. Error: `account_not_found`."
           },
           "response": []
         },
@@ -227,7 +243,7 @@
                 "login"
               ]
             },
-            "description": "Público. `{ email, password }` → `{ accessToken, refreshToken, expiresAt, user: { id, email, name, lastName, picture, provider, emailVerified } }`.\nEl test guarda token y refreshToken.\nErrores: `invalid_credentials`, `email_not_verified`."
+            "description": "Público. Rate limit 5/min. `{ email, password }` → `{ accessToken, refreshToken, expiresAt, user: { id, email, name, lastName, picture, provider, emailVerified } }`.\nEl test guarda token y refreshToken.\nErrores: `invalid_credentials`, `email_not_verified`."
           },
           "response": [],
           "event": [
@@ -300,7 +316,7 @@
                 "access-refresh"
               ]
             },
-            "description": "Público. `{ refreshToken }` → nuevos access + refresh (rota el anterior). Actualizá ambas variables.\nErrores: `invalid_refresh_token`, `expired_refresh_token`."
+            "description": "Público. Rate limit 10/min. `{ refreshToken }` → `{ token, refreshToken, expiresAt }` (ojo: acá el access viene en `token`, no `accessToken`). Rota el refresh anterior. El test actualiza ambas variables.\nErrores 401: `invalid_refresh_token`, `expired_refresh_token`, `refresh_token_reuse_detected` (se presentó un refresh ya rotado → se revocan TODAS las sesiones del usuario; volver a loguear)."
           },
           "response": [],
           "event": [
@@ -311,9 +327,10 @@
                 "exec": [
                   "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "  const json = pm.response.json();",
-                  "  if (json.accessToken) {",
-                  "    pm.collectionVariables.set(\"token\", json.accessToken);",
-                  "    if (pm.environment) pm.environment.set(\"token\", json.accessToken);",
+                  "  const access = json.token || json.accessToken;",
+                  "  if (access) {",
+                  "    pm.collectionVariables.set(\"token\", access);",
+                  "    if (pm.environment) pm.environment.set(\"token\", access);",
                   "  }",
                   "  if (json.refreshToken) {",
                   "    pm.collectionVariables.set(\"refreshToken\", json.refreshToken);",
@@ -350,7 +367,7 @@
                 "logout"
               ]
             },
-            "description": "Bearer + body `{ refreshToken }`. Invalida ese refresh."
+            "description": "Bearer + body `{ refreshToken }` → `{ ok: true }`. Invalida ese refresh."
           },
           "response": []
         },
@@ -382,7 +399,7 @@
                 "password-recovery"
               ]
             },
-            "description": "Público. `{ email }`. Envía código al mail. Siempre 200 para no filtrar si el email existe."
+            "description": "Público. Rate limit 5/min. `{ email }` → `{ ok: true }`. Envía código al mail (10 min). Siempre 200 para no filtrar si el email existe."
           },
           "response": []
         },
@@ -414,7 +431,7 @@
                 "resend-password-recovery"
               ]
             },
-            "description": "Público. `{ email }`. Igual que password-recovery."
+            "description": "Público. Rate limit 5/min. `{ email }` → `{ ok: true }`. Igual que password-recovery."
           },
           "response": []
         },
@@ -446,7 +463,7 @@
                 "new-password"
               ]
             },
-            "description": "Público. `{ email, recoveryCode, newPassword }` (password ≥ 8). NO enviar `confirmPassword`."
+            "description": "Público. Rate limit 5/min. `{ email, recoveryCode, newPassword }` (password ≥ 8) → `{ ok: true }`. NO enviar `confirmPassword`.\nRevoca todos los refresh tokens e invalida los access tokens emitidos (401 `Token has been revoked`): hay que volver a loguear.\nErrores: `invalid_code`, `code_expired`."
           },
           "response": []
         },
@@ -466,7 +483,7 @@
                 "account"
               ]
             },
-            "description": "Bearer. Borra usuario, refresh tokens y stores asociadas."
+            "description": "Bearer. Borra usuario, refresh tokens y stores asociadas → `{ ok: true, deleted: { user, refreshTokens, stores } }`."
           },
           "response": []
         },
@@ -499,7 +516,7 @@
                 "delete-test"
               ]
             },
-            "description": "Público, solo si NODE_ENV !== production. `{ email }`. No usar en la app."
+            "description": "Público, solo si NODE_ENV !== production (si no → `not_available_in_production`). `{ email }` → `{ ok: true, deleted: {...} }`. No usar en la app."
           },
           "response": []
         }
