@@ -448,6 +448,32 @@ export class StoreService {
     return this.toStoreResponse(updated as StoreDocument);
   }
 
+  /** Elimina el avatar del bucket y de la store. No-op si no tiene avatar. */
+  async deleteAvatar(
+    storeId: string,
+    userId: string,
+  ): Promise<StoreProfileResponse> {
+    const store = await this.requireOwnedStore(storeId, userId);
+    const previous = normalizeStoredAvatar(store.avatar);
+    if (previous) {
+      await this.storage.delete({
+        url: previous.url,
+        publicId: previous.publicId,
+      });
+    }
+
+    const updated = await this.storeModel
+      .findByIdAndUpdate(storeId, { $unset: { avatar: 1 } }, { new: true })
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Store not found');
+    }
+
+    return this.toStoreResponse(updated as StoreDocument);
+  }
+
   async remove(storeId: string, userId: string): Promise<{ success: boolean }> {
     const store = await this.requireOwnedStore(storeId, userId);
 
