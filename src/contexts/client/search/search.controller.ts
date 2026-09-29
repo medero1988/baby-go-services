@@ -7,7 +7,7 @@ import { SearchService } from './search.service';
 
 /**
  * Catálogo público (productos + combos) para la app de clientes.
- * Sin JWT. Sigue pidiendo `x-api-token` como el resto de la API.
+ * Sin JWT.
  */
 @Controller(`${ROUTES.CLIENT}/search`)
 export class SearchController {

@@ -5,7 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { ApiTokenGuard, JwtAuthGuard } from './auth/guards';
+import { JwtAuthGuard } from './auth/guards';
 import { ConfigModule } from './config';
 import { EnvService } from './config/env.service';
 import { ClientModule } from './contexts/client/client.module';
@@ -41,7 +41,6 @@ import { TwilioModule } from './shared/twilio/twilio.module';
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: ApiTokenGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })

@@ -7,14 +7,10 @@ import { EnvConfig } from './env.types';
 export default (): EnvConfig => {
   const port = process.env.PORT ?? '3000';
   const mongoPort = process.env.MONGODB_PORT ?? '27017';
-  const apiToken = process.env.API_TOKEN;
   const jwtSecret = process.env.JWT_SECRET;
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const corsOrigin = process.env.CORS_ORIGIN;
 
-  if (!apiToken) {
-    throw new Error('API_TOKEN is not defined in the environment variables');
-  }
   if (!jwtSecret) {
     throw new Error('JWT_SECRET is not defined in the environment variables');
   }
@@ -26,7 +22,6 @@ export default (): EnvConfig => {
     app: {
       port: parseInt(port, 10),
       nodeEnv,
-      apiToken,
       corsOrigin,
     },
     database: {
