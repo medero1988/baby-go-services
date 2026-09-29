@@ -45,19 +45,25 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const hasToken =
       typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
 
-    //TODO remove this header check in production
-    const xDevBypass = request.headers?.['x-dev-bypass'];
-    const devBypassHeader = xDevBypass === 'true' || xDevBypass === '1';
+    // Bloque de bypass de auth para desarrollo local. El chequeo directo de
+    // process.env.NODE_ENV (en vez de this.env.devBypassAuth) es intencional:
+    // en el build de producción (nest build --webpack), DefinePlugin inlinea
+    // process.env.NODE_ENV como literal y Terser elimina esta rama entera del
+    // bundle — el código de bypass no existe en el artefacto de producción.
+    if (process.env.NODE_ENV !== 'production') {
+      const xDevBypass = request.headers?.['x-dev-bypass'];
+      const devBypassHeader = xDevBypass === 'true' || xDevBypass === '1';
 
-    if (
-      !hasToken &&
-      this.env.devBypassAuth &&
-      (devBypassHeader || !authHeader)
-    ) {
-      const devUser = await this.authService.getOrCreateDevUser();
-      if (devUser) {
-        request.user = devUser;
-        return true;
+      if (
+        !hasToken &&
+        this.env.devBypassAuth &&
+        (devBypassHeader || !authHeader)
+      ) {
+        const devUser = await this.authService.getOrCreateDevUser();
+        if (devUser) {
+          request.user = devUser;
+          return true;
+        }
       }
     }
 
