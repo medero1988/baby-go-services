@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { EnvService } from '../../config/env.service';
 import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
+import { EnvService } from '../../config/env.service';
 import type { AuthUser } from '../auth-user';
 import { AuthService } from '../auth.service';
 
@@ -44,6 +44,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const authHeader = request.headers?.authorization;
     const hasToken =
       typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
+
+    //TODO remove this header check in production
     const xDevBypass = request.headers?.['x-dev-bypass'];
     const devBypassHeader = xDevBypass === 'true' || xDevBypass === '1';
 
