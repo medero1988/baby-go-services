@@ -118,6 +118,12 @@ export class StoreController {
     return this.storeService.uploadAvatar(storeId, user.id, file);
   }
 
+  @Delete('/avatar')
+  async deleteAvatar(@CurrentUser() user: AuthUser) {
+    const storeId = await this.storeService.getStoreIdForProvider(user.id);
+    return this.storeService.deleteAvatar(storeId, user.id);
+  }
+
   @Post('/delivery')
   async updateDelivery(
     @Body() body: UpdateDeliveryDto,
