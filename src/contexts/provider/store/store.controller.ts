@@ -1,34 +1,34 @@
 import {
   Body,
   Controller,
-  Get,
-  Post,
-  Patch,
-  Query,
   Delete,
+  Get,
+  Patch,
+  Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as multer from 'multer';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { ROUTES } from '../../../common/constants/api-routes.constants';
 import type { AuthUser } from '../../../auth/auth-user';
+import { ROUTES } from '../../../common/constants/api-routes.constants';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { CreateStripeAccountLinkDto } from '../../payments/dto/create-stripe-account-link.dto';
+import { ProviderMovementsQueryDto } from '../../payments/dto/provider-movements-query.dto';
+import { PaymentService } from '../../payments/payment.service';
+import { StripeConnectService } from '../../payments/stripe-connect.service';
 import {
   CellVerificationDto,
   SendCellCodeDto,
 } from './dto/cell-verification.dto';
-import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { ConfirmStoreDto } from './dto/confirm-store.dto';
+import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
-import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
+import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 import { UpdateStoreProfileDto } from './dto/update-store-profile.dto';
-import { CreateStripeAccountLinkDto } from '../../payments/dto/create-stripe-account-link.dto';
-import { ProviderMovementsQueryDto } from '../../payments/dto/provider-movements-query.dto';
-import { StripeConnectService } from '../../payments/stripe-connect.service';
-import { PaymentService } from '../../payments/payment.service';
 import { StoreService } from './store.service';
 
 /**
@@ -69,7 +69,6 @@ export class StoreController {
 
   @Post('profile')
   async createStore(
-    @Query('steep') steep: string,
     @Body() body: CreateStoreProfileDto | SendCellCodeDto | CellVerificationDto,
     @CurrentUser() user: AuthUser,
   ) {

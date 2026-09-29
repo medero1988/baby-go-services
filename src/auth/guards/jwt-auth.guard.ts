@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { EnvService } from '../../config/env.service';
 import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
+import { EnvService } from '../../config/env.service';
 import type { AuthUser } from '../auth-user';
 import { AuthService } from '../auth.service';
 

@@ -76,10 +76,6 @@ export class EnvService {
     return this.app.nodeEnv;
   }
 
-  get apiToken(): string {
-    return this.app.apiToken;
-  }
-
   get corsOrigin(): string | undefined {
     return this.app.corsOrigin;
   }

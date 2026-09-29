@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ROUTES } from '../common/constants/api-routes.constants';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { AuthUser } from './auth-user';
 import { AuthService } from './auth.service';
 import {
   CreateAccountDto,
@@ -50,13 +51,13 @@ export class AuthController {
   }
 
   @Get('account')
-  getAccount(@CurrentUser() user: { _id: string }) {
+  getAccount(@CurrentUser() user: AuthUser) {
     return this.authService.findAccount(String(user._id));
   }
 
   /** Elimina la cuenta del usuario autenticado (y stores/refresh tokens). */
   @Delete('account')
-  deleteAccount(@CurrentUser() user: { _id: string }) {
+  deleteAccount(@CurrentUser() user: AuthUser) {
     return this.authService.deleteAccount(String(user._id));
   }
 
