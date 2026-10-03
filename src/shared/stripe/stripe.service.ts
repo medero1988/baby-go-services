@@ -71,18 +71,30 @@ export class StripeService {
     });
   }
 
-  /** Cuenta Connect Express para un provider/store. */
+  /**
+   * Cuenta Connect para un provider/store (controller properties, no `type`).
+   * Stripe hace el onboarding hosted (KYC + cuenta bancaria); el provider usa
+   * el Express Dashboard; la plataforma paga fees y cubre pérdidas.
+   * Pide `card_payments` + `transfers` (service agreement `full`): requerido
+   * para transfers cross-border (plataforma NL → providers en US/CA).
+   */
   async createConnectAccount(params: {
     email?: string;
     country?: string;
     metadata?: Record<string, string>;
   }): Promise<Stripe.Account> {
     return this.getClient().accounts.create({
-      type: 'express',
+      controller: {
+        stripe_dashboard: { type: 'express' },
+        fees: { payer: 'application' },
+        losses: { payments: 'application' },
+        requirement_collection: 'stripe',
+      },
       email: params.email,
       country: params.country?.toLowerCase(),
       metadata: params.metadata,
       capabilities: {
+        card_payments: { requested: true },
         transfers: { requested: true },
       },
     });
@@ -90,44 +102,6 @@ export class StripeService {
 
   async retrieveConnectAccount(accountId: string): Promise<Stripe.Account> {
     return this.getClient().accounts.retrieve(accountId);
-  }
-
-  /**
-   * Crea un token bancario (btok_...) a partir de los datos de payout.
-   * Para IBAN, `accountNumber` = el IBAN completo.
-   */
-  async createBankAccountToken(params: {
-    country: string;
-    currency: string;
-    accountNumber: string;
-    routingNumber?: string;
-    accountHolderName: string;
-    accountHolderType: 'individual' | 'company';
-  }): Promise<Stripe.Token> {
-    return this.getClient().tokens.create({
-      bank_account: {
-        country: params.country.toUpperCase(),
-        currency: params.currency.toLowerCase(),
-        account_number: params.accountNumber,
-        account_holder_name: params.accountHolderName,
-        account_holder_type: params.accountHolderType,
-        ...(params.routingNumber
-          ? { routing_number: params.routingNumber }
-          : {}),
-      },
-    });
-  }
-
-  /** Adjunta una cuenta externa (bank account) al connected account. */
-  async attachExternalBankAccount(
-    accountId: string,
-    bankAccountToken: string,
-  ): Promise<Stripe.BankAccount> {
-    const result = await this.getClient().accounts.createExternalAccount(
-      accountId,
-      { external_account: bankAccountToken },
-    );
-    return result as Stripe.BankAccount;
   }
 
   /** URL onboarding Stripe (datos bancarios del provider). */

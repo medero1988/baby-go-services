@@ -64,35 +64,20 @@ export interface AttentionSchedule extends ServiceSchedule {
 /** Horario de retiro en tienda (customer pickup). */
 export type PickupSchedule = ServiceSchedule;
 
-/** Stripe Connect Express — onboarding bancario del provider. */
+/**
+ * Stripe Connect — onboarding hosted del provider (KYC + cuenta bancaria).
+ * Los datos bancarios viven solo en Stripe; nunca pasan por nuestra API.
+ */
 export interface StripeConnectStatus {
   accountId?: string;
+  /** Puede recibir transfers y Stripe puede pagarle a su banco. */
   onboardingComplete: boolean;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
+  /** Capability `transfers` activa en Stripe. */
+  transfersEnabled: boolean;
+  /** El provider terminó el formulario de onboarding de Stripe. */
   detailsSubmitted: boolean;
-}
-
-/**
- * Datos bancarios (payout) de la store.
- * No persistimos IBAN/nro de cuenta completo: guardamos metadata + `last4`
- * y el token/id de Stripe como referencia segura.
- */
-export interface StoreBankAccount {
-  accountType: 'IBAN' | 'NUMBER';
-  holderName: string;
-  entityType: 'individual' | 'company';
-  country: string;
-  currency: string;
-  bankName: string;
-  /** Últimos 4 dígitos del IBAN / número de cuenta. */
-  last4?: string;
-  swiftCode?: string;
-  address?: string;
-  /** Token de Stripe (btok_...) generado con los datos bancarios. */
-  token: string;
-  /** Id de la cuenta externa en Stripe Connect (ba_...), si fue adjuntada. */
-  externalAccountId?: string;
 }
 
 /** Avatar persistido (Cloudinary / storage). */
@@ -138,10 +123,6 @@ export interface StoreProfileResponse {
   customerPickup?: PickupSchedule;
   /** Cuenta Stripe Connect del provider. */
   stripeConnect?: StripeConnectStatus;
-  /** Datos bancarios (payout) de la store. */
-  bankAccount?: StoreBankAccount;
-  /** Token/id de la cuenta bancaria en Stripe (referencia rápida para el front). */
-  bankAccountTk?: string;
   meta: StoreFunnelMeta;
   /** Solo en desarrollo: código enviado para verificación (para pruebas). */
   devCode?: string;

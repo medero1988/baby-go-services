@@ -12,6 +12,7 @@ import { StoreDocument } from '../provider/store/store.schema';
 import { CreateStripeAccountLinkDto } from './dto/create-stripe-account-link.dto';
 import { AccountLinkResponse } from './payment.types';
 import { StripeConnectStatus } from '../provider/store/store.types';
+import { toAppDeepLink } from './stripe-connect-redirect.controller';
 
 @Injectable()
 export class StripeConnectService {
@@ -21,7 +22,7 @@ export class StripeConnectService {
     private env: EnvService,
   ) {}
 
-  /** Crea (si no existe) cuenta Connect Express y devuelve URL de onboarding. */
+  /** Crea (si no existe) cuenta Connect y devuelve URL de onboarding hosted. */
   async createAccountLink(
     storeId: string,
     userId: string,
@@ -32,20 +33,32 @@ export class StripeConnectService {
     let accountId = store.stripeConnect?.accountId;
 
     if (!accountId) {
-      const account = await this.stripe.createConnectAccount({
-        country: store.country,
-        metadata: { storeId, userId },
-      });
+      let account: Stripe.Account;
+      try {
+        account = await this.stripe.createConnectAccount({
+          country: store.country,
+          metadata: { storeId, userId },
+        });
+      } catch (err) {
+        throw mapStripeConnectError(err);
+      }
       accountId = account.id;
-      store.stripeConnect = {
-        accountId,
-        onboardingComplete: false,
-        chargesEnabled: false,
-        payoutsEnabled: false,
-        detailsSubmitted: false,
-      };
+      store.stripeConnect = emptyConnectStatus(accountId);
       store.meta.lastSteep = 'bank-account';
       await store.save();
+    }
+
+    let appRedirect: string | undefined;
+    if (dto.appRedirectUrl !== undefined) {
+      appRedirect = toAppDeepLink(dto.appRedirectUrl);
+      if (!appRedirect) {
+        throw new BadRequestException({
+          error: 'invalid_app_redirect_url',
+          message:
+            'appRedirectUrl must be an app deep link (e.g. bbgo://...), not a web URL',
+          field: 'appRedirectUrl',
+        });
+      }
     }
 
     const returnUrl = dto.returnUrl ?? this.env.stripeConnectReturnUrl;
@@ -57,8 +70,8 @@ export class StripeConnectService {
     try {
       link = await this.stripe.createAccountLink({
         accountId,
-        returnUrl,
-        refreshUrl,
+        returnUrl: withAppRedirect(returnUrl, appRedirect),
+        refreshUrl: withAppRedirect(refreshUrl, appRedirect),
       });
     } catch (err) {
       throw mapStripeConnectError(err);
@@ -67,13 +80,7 @@ export class StripeConnectService {
     return {
       url: link.url,
       expiresAt: link.expires_at,
-      stripeConnect: store.stripeConnect ?? {
-        accountId,
-        onboardingComplete: false,
-        chargesEnabled: false,
-        payoutsEnabled: false,
-        detailsSubmitted: false,
-      },
+      stripeConnect: store.stripeConnect ?? emptyConnectStatus(accountId),
     };
   }
 
@@ -105,12 +112,9 @@ export class StripeConnectService {
     return store.stripeConnect;
   }
 
-  async handleAccountUpdated(account: {
-    id: string;
-    charges_enabled?: boolean;
-    payouts_enabled?: boolean;
-    details_submitted?: boolean;
-  }): Promise<void> {
+  async handleAccountUpdated(
+    account: StripeAccountFlags & { id: string },
+  ): Promise<void> {
     const store = await this.storeModel
       .findOne({ 'stripeConnect.accountId': account.id })
       .exec();
@@ -147,25 +151,51 @@ export class StripeConnectService {
   }
 }
 
+type StripeAccountFlags = Pick<
+  Stripe.Account,
+  'charges_enabled' | 'payouts_enabled' | 'details_submitted' | 'capabilities'
+>;
+
+function emptyConnectStatus(accountId: string): StripeConnectStatus {
+  return {
+    accountId,
+    onboardingComplete: false,
+    chargesEnabled: false,
+    payoutsEnabled: false,
+    transfersEnabled: false,
+    detailsSubmitted: false,
+  };
+}
+
+/**
+ * `onboardingComplete` = la plataforma puede transferir ganancias al provider
+ * y Stripe puede pagarlas a su banco. `chargesEnabled` es informativo: los
+ * cobros se hacen en la cuenta plataforma, no en la del provider.
+ */
 function mapStripeAccountToConnectStatus(
   accountId: string,
-  account: {
-    charges_enabled?: boolean;
-    payouts_enabled?: boolean;
-    details_submitted?: boolean;
-  },
+  account: StripeAccountFlags,
 ): StripeConnectStatus {
   const chargesEnabled = account.charges_enabled === true;
   const payoutsEnabled = account.payouts_enabled === true;
+  const transfersEnabled = account.capabilities?.transfers === 'active';
   const detailsSubmitted = account.details_submitted === true;
 
   return {
     accountId,
     chargesEnabled,
     payoutsEnabled,
+    transfersEnabled,
     detailsSubmitted,
-    onboardingComplete: chargesEnabled && payoutsEnabled && detailsSubmitted,
+    onboardingComplete: detailsSubmitted && payoutsEnabled && transfersEnabled,
   };
+}
+
+function withAppRedirect(url: string, appRedirect?: string): string {
+  if (!appRedirect) return url;
+  const parsed = new URL(url.trim());
+  parsed.searchParams.set('redirect', appRedirect);
+  return parsed.toString();
 }
 
 const STRIPE_REDIRECT_URL = /^https?:\/\/.+/i;

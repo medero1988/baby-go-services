@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Baby Go — Provider Store",
-    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}}\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Connect.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary (mismo patrón que product medias: `avatar.url` + `avatar.urls`).\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
+    "description": "Store del provider (1:1). **No enviar storeId**: se resuelve del JWT.\n\n**Base:** /api/v1/store  |  **Auth:** Bearer {{token}}\n\nFlujo: POST /profile → cell → avatar → delivery → delivery-pricing → customer-pickup → Stripe Connect (account-link, onboarding hosted: KYC + banco) → confirmation.\n\n`meta.state`: missing-info | pending-review | active\nAvatar: form-data `avatar` (File) → Cloudinary (mismo patrón que product medias: `avatar.url` + `avatar.urls`).\nDelivery pricing en **centavos**. `days` = índices a `timeRanges`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -352,35 +352,6 @@
               ]
             },
             "description": "`{ available: true, available24h: true }`."
-          },
-          "response": []
-        },
-        {
-          "name": "7a. Datos bancarios (payout)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"accountType\": \"IBAN\",\n  \"firstName\": \"Jhon\",\n  \"lastName\": \"Doe\",\n  \"country\": \"NL\",\n  \"currency\": \"eur\",\n  \"iban\": \"NL91ABNA0417164300\",\n  \"bankName\": \"ABN AMRO\",\n  \"swiftCode\": \"ABNANL2A\",\n  \"address\": \"Seevank 144, Zwanenburg\",\n  \"entityType\": \"individual\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/v1/store/bank-account",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "store",
-                "bank-account"
-              ]
-            },
-            "description": "`accountType`: `IBAN` (+ `iban`) o `NUMBER` (+ `accountNumber`).\nTambién: firstName, lastName, country (ISO-2), currency?, bankName, swiftCode?, routingNumber?, address?, entityType: individual|company.\nNo se persiste el IBAN completo: last4 + token Stripe."
           },
           "response": []
         },

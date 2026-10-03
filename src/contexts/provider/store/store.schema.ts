@@ -5,7 +5,6 @@ import {
   PickupSchedule,
   StoreAddress,
   StoreAvatar,
-  StoreBankAccount,
   StoreFunnelMeta,
   StripeConnectStatus,
 } from './store.types';
@@ -60,13 +59,9 @@ export class Store {
   @Prop({ type: MongooseSchema.Types.Mixed, required: false })
   customerPickup?: PickupSchedule;
 
-  /** Stripe Connect Express (cuenta bancaria del provider). */
+  /** Stripe Connect (onboarding hosted; cuenta bancaria vive en Stripe). */
   @Prop({ type: MongooseSchema.Types.Mixed, required: false })
   stripeConnect?: StripeConnectStatus;
-
-  /** Datos bancarios (payout) de la store; metadata + token Stripe. */
-  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
-  bankAccount?: StoreBankAccount;
 
   @Prop({ trim: true })
   cellVerificationCode?: string;
