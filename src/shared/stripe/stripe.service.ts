@@ -77,6 +77,9 @@ export class StripeService {
    * el Express Dashboard; la plataforma paga fees y cubre pérdidas.
    * Pide `card_payments` + `transfers` (service agreement `full`): requerido
    * para transfers cross-border (plataforma NL → providers en US/CA).
+   * Providers son personas (sin empresa registrada): `business_type`
+   * `individual` evita que el onboarding pida datos de empresa (KvK, etc.).
+   * Prefill debe ir acá: tras crear el account link no se puede editar el KYC.
    */
   async createConnectAccount(params: {
     email?: string;
@@ -92,6 +95,13 @@ export class StripeService {
       },
       email: params.email,
       country: params.country?.toLowerCase(),
+      business_type: 'individual',
+      business_profile: {
+        // Equipment, Tool, Furniture, and Appliance Rental and Leasing
+        mcc: '7394',
+        product_description:
+          'Rents out baby products to customers through the BBGO marketplace.',
+      },
       metadata: params.metadata,
       capabilities: {
         card_payments: { requested: true },
