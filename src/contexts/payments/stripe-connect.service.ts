@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,6 +17,8 @@ import { toAppDeepLink } from './stripe-connect-redirect.controller';
 
 @Injectable()
 export class StripeConnectService {
+  private readonly logger = new Logger(StripeConnectService.name);
+
   constructor(
     @InjectModel('Store') private readonly storeModel: Model<StoreDocument>,
     private stripe: StripeService,
@@ -31,6 +34,15 @@ export class StripeConnectService {
     const store = await this.requireOwnedStore(storeId, userId);
 
     let accountId = store.stripeConnect?.accountId;
+
+    // La cuenta guardada puede no pertenecer a esta plataforma (cambio de
+    // claves Stripe / sandbox) o haber sido borrada: se crea una nueva.
+    if (accountId && !(await this.isAccountAccessible(accountId))) {
+      this.logger.warn(
+        `Store ${storeId}: Stripe account ${accountId} is not accessible with the current key; creating a new one`,
+      );
+      accountId = undefined;
+    }
 
     if (!accountId) {
       let account: Stripe.Account;
@@ -96,9 +108,27 @@ export class StripeConnectService {
       });
     }
 
-    const account = await this.stripe.retrieveConnectAccount(
-      store.stripeConnect.accountId,
-    );
+    let account: Stripe.Account;
+    try {
+      account = await this.stripe.retrieveConnectAccount(
+        store.stripeConnect.accountId,
+      );
+    } catch (err) {
+      if (!isInaccessibleAccountError(err)) throw err;
+      // Cuenta de otra plataforma o borrada: el onboarding vuelve a empezar.
+      this.logger.warn(
+        `Store ${storeId}: Stripe account ${store.stripeConnect.accountId} is not accessible; clearing it`,
+      );
+      store.stripeConnect = undefined;
+      await store.save();
+      return {
+        onboardingComplete: false,
+        chargesEnabled: false,
+        payoutsEnabled: false,
+        transfersEnabled: false,
+        detailsSubmitted: false,
+      };
+    }
 
     store.stripeConnect = mapStripeAccountToConnectStatus(
       store.stripeConnect.accountId,
@@ -142,6 +172,16 @@ export class StripeConnectService {
     await store.save();
   }
 
+  private async isAccountAccessible(accountId: string): Promise<boolean> {
+    try {
+      await this.stripe.retrieveConnectAccount(accountId);
+      return true;
+    } catch (err) {
+      if (isInaccessibleAccountError(err)) return false;
+      throw mapStripeConnectError(err);
+    }
+  }
+
   private async requireOwnedStore(storeId: string, userId: string) {
     const store = await this.storeModel.findById(storeId).exec();
     if (!store || String(store.userId) !== userId) {
@@ -155,6 +195,19 @@ type StripeAccountFlags = Pick<
   Stripe.Account,
   'charges_enabled' | 'payouts_enabled' | 'details_submitted' | 'capabilities'
 >;
+
+/**
+ * Stripe devuelve 403 `account_invalid` para cuentas de otra plataforma o
+ * inexistentes, y `resource_missing` para cuentas borradas.
+ */
+export function isInaccessibleAccountError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const { type, code } = err as { type?: string; code?: string };
+  return (
+    (type === 'StripePermissionError' && code === 'account_invalid') ||
+    code === 'resource_missing'
+  );
+}
 
 function emptyConnectStatus(accountId: string): StripeConnectStatus {
   return {
