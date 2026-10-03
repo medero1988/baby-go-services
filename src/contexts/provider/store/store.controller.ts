@@ -24,7 +24,6 @@ import {
 } from './dto/cell-verification.dto';
 import { ConfirmStoreDto } from './dto/confirm-store.dto';
 import { CreateStoreProfileDto } from './dto/create-store-profile.dto';
-import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { UpdateCustomerPickupDto } from './dto/update-customer-pickup.dto';
 import { UpdateDeliveryPricingDto } from './dto/update-delivery-pricing.dto';
 import { UpdateDeliveryDto } from './dto/update-delivery.dto';
@@ -148,15 +147,6 @@ export class StoreController {
   ) {
     const storeId = await this.storeService.getStoreIdForProvider(user.id);
     return this.storeService.updateCustomerPickup(storeId, user.id, body);
-  }
-
-  @Post('/bank-account')
-  async updateBankAccount(
-    @Body() body: UpdateBankAccountDto,
-    @CurrentUser() user: AuthUser,
-  ) {
-    const storeId = await this.storeService.getStoreIdForProvider(user.id);
-    return this.storeService.updateBankAccount(storeId, user.id, body);
   }
 
   @Post('/confirmation')

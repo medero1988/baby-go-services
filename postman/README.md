@@ -64,7 +64,9 @@ Catálogo de productos: `GET /v1/settings/product-taxonomy` → `value: { famili
 
 ## Store `/v1/store` (1:1, sin `storeId` en URL)
 
-Flujo: `POST /profile` → cell → avatar → delivery → delivery-pricing → customer-pickup → bank-account → confirmation → Stripe Connect.
+Flujo: `POST /profile` → cell → avatar → delivery → delivery-pricing → customer-pickup → Stripe Connect (`POST /stripe-connect/account-link`, onboarding hosted: KYC + cuenta bancaria) → confirmation.
+
+Los datos bancarios solo se cargan en el formulario de Stripe; la API no los recibe ni los guarda. Estado: `stripeConnect.{detailsSubmitted, payoutsEnabled, transfersEnabled, onboardingComplete}` (se sincroniza por webhook `account.updated` o `GET /stripe-connect/status`).
 
 `meta.state`: `missing-info` | `pending-review` | `active`.  
 `meta.lastSteep`: último paso del funnel.
@@ -73,7 +75,7 @@ Avatar: `multipart/form-data` field **`avatar`** tipo File. Cloudinary como prod
 
 Delivery `days.*.n` son **índices** de `timeRanges` (máx 3 por día). Pickup máx 2. Precios delivery en **centavos**.
 
-Confirmación: `{ "acceptedTerms": true }`. Requiere cell validado + bank.
+Confirmación: `{ "acceptedTerms": true }`. Requiere cell validado + `stripeConnect.detailsSubmitted` (error `stripe_onboarding_required`).
 
 ---
 

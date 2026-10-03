@@ -118,7 +118,11 @@ export class PaymentService {
     }
 
     const store = await this.storeModel.findById(payment.storeId).lean().exec();
-    if (!store?.stripeConnect?.accountId) {
+    // Sin onboarding completo Stripe rechaza el transfer o no puede pagar al banco.
+    if (
+      !store?.stripeConnect?.accountId ||
+      !store.stripeConnect.onboardingComplete
+    ) {
       throw new BadRequestException({
         error: PAYMENT_ERRORS.STORE_NOT_READY,
       });

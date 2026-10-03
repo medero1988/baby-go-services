@@ -1,4 +1,4 @@
-import { IsOptional, IsUrl } from 'class-validator';
+import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 export class CreateStripeAccountLinkDto {
   /** URL http(s) de retorno tras onboarding (opcional, usa env por defecto). */
@@ -10,4 +10,13 @@ export class CreateStripeAccountLinkDto {
   @IsOptional()
   @IsUrl({ require_tld: false, protocols: ['http', 'https'] })
   refreshUrl?: string;
+
+  /**
+   * Deep link de la app (ej. `bbgo://stripe-connect/return`). Se agrega como
+   * `?redirect=` a returnUrl/refreshUrl para que esas páginas vuelvan a la app.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  appRedirectUrl?: string;
 }
