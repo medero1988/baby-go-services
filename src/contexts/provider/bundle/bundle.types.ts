@@ -1,6 +1,11 @@
-import { ProductPrice, ProductResponse } from '../product/product.types';
+import {
+  ProductPrice,
+  ProductResponse,
+  ProductStatus,
+} from '../product/product.types';
 
-export type BundleStatus = 'draft' | 'active' | 'inactive';
+/** Mismos estados y reglas que los productos (ver `ProductStatus`). */
+export type BundleStatus = ProductStatus;
 
 export type BundleResponse = {
   id: string;

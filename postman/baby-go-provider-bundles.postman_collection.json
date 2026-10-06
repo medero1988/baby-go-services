@@ -58,9 +58,9 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "draft",
+                  "value": "available",
                   "disabled": true,
-                  "description": "draft | active | inactive"
+                  "description": "available | rented | in_review | inactive"
                 },
                 {
                   "key": "category",
@@ -757,36 +757,15 @@
                 "{{bundleId}}"
               ]
             },
-            "description": "`status`: draft | active | inactive. Pasar a active corre las mismas reglas que save."
+            "description": "`status`: available | inactive (solo desde available/inactive). Pasar a available exige todos los productos available."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "3. Publicar / borrar",
+      "name": "3. Borrar",
       "item": [
-        {
-          "name": "Save bundle (activar)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}/save",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "bundles",
-                "{{bundleId}}",
-                "save"
-              ]
-            },
-            "description": "draft → active. Requiere title, description, price.list > 0, ≥2 productos propios y que estén `active`."
-          },
-          "response": []
-        },
         {
           "name": "Eliminar bundle",
           "request": {

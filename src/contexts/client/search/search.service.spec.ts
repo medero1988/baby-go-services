@@ -17,7 +17,7 @@ describe('SearchService filters', () => {
     expect(service.productFilter(null, [])).toEqual({ status: 'available' });
   });
 
-  it('keeps bundles on their own active status', () => {
-    expect(service.bundleFilter(null, [])).toEqual({ status: 'active' });
+  it('only shows available bundles to customers', () => {
+    expect(service.bundleFilter(null, [])).toEqual({ status: 'available' });
   });
 });

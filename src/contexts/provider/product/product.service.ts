@@ -559,14 +559,14 @@ function mergeAttributes(
   return next;
 }
 
-/** El provider solo cambia el status de productos `available` o `inactive`. */
-function assertProviderStatusTransition(current: ProductStatus): void {
+/** El provider solo cambia el status de productos/bundles `available` o `inactive`. */
+export function assertProviderStatusTransition(current: ProductStatus): void {
   if (
     !(PROVIDER_SETTABLE_PRODUCT_STATUSES as ProductStatus[]).includes(current)
   ) {
     throw new BadRequestException({
       error: 'invalid_status_transition',
-      message: `Cannot change status of a product that is ${current}; only available ↔ inactive is allowed`,
+      message: `Cannot change status from ${current}; only available ↔ inactive is allowed`,
     });
   }
 }

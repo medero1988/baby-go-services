@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ProductService } from '../product/product.service';
+import {
+  ProductService,
+  assertProviderStatusTransition,
+} from '../product/product.service';
 import { ProductDocument } from '../product/product.schema';
 import {
   hasPricePatch,
@@ -53,7 +56,7 @@ export class BundleService {
       description: dto.description.trim(),
       price: normalizePrice(dto.price),
       category: buildBundleCategories(products),
-      status: 'draft',
+      status: 'in_review',
     });
 
     return this.toResponse(bundle.toObject() as BundleDocument, products);
@@ -137,6 +140,10 @@ export class BundleService {
       throw new BadRequestException({ error: 'no_fields_to_update' });
     }
 
+    if (dto.status !== undefined) {
+      assertProviderStatusTransition(bundle.status);
+    }
+
     if (dto.title !== undefined) {
       const title = dto.title.trim();
       await this.assertTitleAvailable(userId, title, bundleId);
@@ -167,22 +174,13 @@ export class BundleService {
       bundle.status = dto.status;
     }
 
-    if (bundle.status === 'active') {
+    if (bundle.status === 'available') {
       const products = await this.loadBundleProducts(userId, bundle);
-      this.assertReadyToActivate(bundle, products);
+      this.assertProductsAvailable(bundle, products);
     }
 
     await bundle.save();
     const products = await this.loadBundleProducts(userId, bundle);
-    return this.toResponse(bundle.toObject() as BundleDocument, products);
-  }
-
-  async save(bundleId: string, userId: string): Promise<BundleResponse> {
-    const bundle = await this.requireOwnedBundle(bundleId, userId);
-    const products = await this.loadBundleProducts(userId, bundle);
-    this.assertReadyToActivate(bundle, products);
-    bundle.status = 'active';
-    await bundle.save();
     return this.toResponse(bundle.toObject() as BundleDocument, products);
   }
 
@@ -192,33 +190,12 @@ export class BundleService {
     return { success: true };
   }
 
-  private assertReadyToActivate(
+  /** Un bundle `available` solo puede contener productos propios `available`. */
+  private assertProductsAvailable(
     bundle: BundleDocument,
     products: ProductDocument[],
   ): void {
-    const missing: string[] = [];
     const productIds = (bundle.productIds ?? []).map((id) => String(id));
-
-    if (!bundle.title?.trim()) missing.push('title');
-    if (!bundle.description?.trim()) missing.push('description');
-
-    const list = bundle.price?.list;
-    if (typeof list !== 'number' || !Number.isFinite(list) || list <= 0) {
-      missing.push('price');
-    }
-
-    if (productIds.length < 2) {
-      missing.push('products');
-    }
-
-    if (missing.length) {
-      throw new BadRequestException({
-        error: 'bundle_incomplete',
-        missing,
-        message:
-          'Complete title, description, price and at least two products before activating',
-      });
-    }
 
     if (products.length !== productIds.length) {
       const present = new Set(products.map((doc) => String(doc._id)));
@@ -235,10 +212,6 @@ export class BundleService {
         missing: inactive.map((doc) => String(doc._id)),
         message: 'All products in the bundle must be available',
       });
-    }
-
-    if (bundle.price?.offer !== undefined) {
-      normalizePrice(bundle.price);
     }
   }
 
