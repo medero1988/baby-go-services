@@ -68,7 +68,7 @@ function build(
     storeService as never,
     productService as never,
   );
-  return { service, bundleModel };
+  return { service, bundleModel, productService };
 }
 
 async function expectError(promise: Promise<unknown>, error: string) {
@@ -85,9 +85,35 @@ async function expectError(promise: Promise<unknown>, error: string) {
 }
 
 describe('BundleService', () => {
-  it('creates bundles in_review', async () => {
-    const { service, bundleModel } = build();
-    const res = await service.create(USER_ID, {
+  it.each([
+    ['in_review', 'in_review'],
+    ['available', 'available'],
+    ['inactive', 'available'],
+    ['rented', 'available'],
+  ] as const)(
+    'creates the bundle with %s products as %s',
+    async (productStatus, expected) => {
+      const { service, bundleModel } = build(undefined, productStatus);
+      const res = await service.create(USER_ID, {
+        products: PRODUCT_IDS,
+        title: 'Pack',
+        description: 'desc',
+        price: { list: 10 },
+      });
+      expect(bundleModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: expected }),
+      );
+      expect(res.status).toBe(expected);
+    },
+  );
+
+  it('creates the bundle in_review when only one product is in_review', async () => {
+    const { service, bundleModel, productService } = build();
+    productService.requireOwnedProducts.mockResolvedValue([
+      makeProduct(PRODUCT_IDS[0], 'available'),
+      makeProduct(PRODUCT_IDS[1], 'in_review'),
+    ]);
+    await service.create(USER_ID, {
       products: PRODUCT_IDS,
       title: 'Pack',
       description: 'desc',
@@ -96,7 +122,6 @@ describe('BundleService', () => {
     expect(bundleModel.create).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'in_review' }),
     );
-    expect(res.status).toBe('in_review');
   });
 
   it.each([
@@ -123,12 +148,28 @@ describe('BundleService', () => {
     },
   );
 
-  it('requires every product to be available to make a bundle available', async () => {
+  it('keeps the bundle in_review when made available with a product in_review', async () => {
     const bundle = makeBundle('inactive');
-    const { service } = build(bundle, 'rented');
-    await expectError(
-      service.update(BUNDLE_ID, USER_ID, { status: 'available' }),
-      'products_not_active',
-    );
+    const { service } = build(bundle, 'in_review');
+    const res = await service.update(BUNDLE_ID, USER_ID, {
+      status: 'available',
+    });
+    expect(res.status).toBe('in_review');
+  });
+
+  it('moves an available bundle to in_review when an in_review product is added', async () => {
+    const bundle = makeBundle('available');
+    const { service } = build(bundle, 'in_review');
+    const res = await service.update(BUNDLE_ID, USER_ID, {
+      products: PRODUCT_IDS,
+    });
+    expect(res.status).toBe('in_review');
+  });
+
+  it('leaves an inactive bundle inactive on edit', async () => {
+    const bundle = makeBundle('inactive');
+    const { service } = build(bundle, 'in_review');
+    const res = await service.update(BUNDLE_ID, USER_ID, { title: 'Pack 2' });
+    expect(res.status).toBe('inactive');
   });
 });

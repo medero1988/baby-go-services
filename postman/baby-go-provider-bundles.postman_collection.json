@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-bundles000001",
     "name": "Baby Go — Provider Bundles",
-    "description": "Bundles (combo ≥2 productos propios). Bearer JWT.\n\n**Create:** `{ products: [mongoId, ...], title, description, price }` (mín 2, máx 10, únicos).\n`category` lo calcula el BE: `[\"bundle\", ...categorías hijas]`.\n**List:** GET /v1/bundles?page=&limit=&status=&category= → `{ items, page, limit, total, totalPages }`. `products` viene expandido.\n**PATCH:** products, title, description, price, status.\n**Save:** POST /:id/save. Los productos tienen que estar `active` (`products_not_active`). Otros: `bundle_incomplete`, `products_not_found`, `title_not_available`.\nDELETE no borra los productos.\n\nCarpeta 1. Crear tiene bodies con IDs reales de catálogo de prueba.",
+    "description": "Bundles (combo ≥2 productos propios). Bearer JWT.\n\n**Create:** `{ products: [mongoId, ...], title, description, price }` (mín 2, máx 10, únicos).\n`category` lo calcula el BE: `[\"bundle\", ...categorías hijas]`.\n**List:** GET /v1/bundles?page=&limit=&status=&category= → `{ items, page, limit, total, totalPages }`. `products` viene expandido.\n**PATCH:** products, title, description, price, status.\n**Status:** `available | rented | in_review | inactive`. `in_review` si algún producto está `in_review`, si no `available`. El provider alterna `available` ↔ `inactive` (`invalid_status_transition`). Otros: `products_not_found`, `title_not_available`.\nDELETE no borra los productos.\n\nCarpeta 1. Crear tiene bodies con IDs reales de catálogo de prueba.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -757,7 +757,7 @@
                 "{{bundleId}}"
               ]
             },
-            "description": "`status`: available | inactive (solo desde available/inactive). Pasar a available exige todos los productos available."
+            "description": "`status`: available | inactive (solo desde available/inactive). Pasar a available deja el bundle in_review si algún producto está in_review."
           },
           "response": []
         }

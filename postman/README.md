@@ -115,7 +115,7 @@ List paginado igual que products. GET/list expanden `products` (objeto producto,
 
 PATCH: `products`, `title`, `description`, `price`, `status`. Recalcula `category` si cambian products.
 
-Status: mismos que productos (`available | rented | in_review | inactive`). Se crea `in_review` (un admin lo pasa a `available`). Solo `available` aparece en la búsqueda de clientes. El provider alterna `available` ↔ `inactive`; desde `in_review`/`rented` → 400 `invalid_status_transition`. Un bundle `available` exige todos sus productos `available`. Errores: `invalid_status_transition`, `products_not_found`, `products_not_active`, `title_not_available`.
+Status: mismos que productos (`available | rented | in_review | inactive`). Un bundle está `in_review` si al menos uno de sus productos está `in_review`; si no, `available` (se calcula al crear y en cada PATCH de un bundle `available`/`in_review`; `inactive`/`rented` no se tocan). Solo `available` aparece en la búsqueda de clientes. El provider alterna `available` ↔ `inactive`; desde `in_review`/`rented` → 400 `invalid_status_transition`. Errores: `invalid_status_transition`, `products_not_found`, `title_not_available`.
 
 DELETE borra el bundle, no los productos.
 

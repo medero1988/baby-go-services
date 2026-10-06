@@ -56,7 +56,7 @@ export class BundleService {
       description: dto.description.trim(),
       price: normalizePrice(dto.price),
       category: buildBundleCategories(products),
-      status: 'in_review',
+      status: reviewStatus(products),
     });
 
     return this.toResponse(bundle.toObject() as BundleDocument, products);
@@ -174,13 +174,12 @@ export class BundleService {
       bundle.status = dto.status;
     }
 
-    if (bundle.status === 'available') {
-      const products = await this.loadBundleProducts(userId, bundle);
-      this.assertProductsAvailable(bundle, products);
+    const products = await this.loadBundleProducts(userId, bundle);
+    if (bundle.status === 'available' || bundle.status === 'in_review') {
+      bundle.status = reviewStatus(products);
     }
 
     await bundle.save();
-    const products = await this.loadBundleProducts(userId, bundle);
     return this.toResponse(bundle.toObject() as BundleDocument, products);
   }
 
@@ -188,31 +187,6 @@ export class BundleService {
     const bundle = await this.requireOwnedBundle(bundleId, userId);
     await this.bundleModel.deleteOne({ _id: bundle._id }).exec();
     return { success: true };
-  }
-
-  /** Un bundle `available` solo puede contener productos propios `available`. */
-  private assertProductsAvailable(
-    bundle: BundleDocument,
-    products: ProductDocument[],
-  ): void {
-    const productIds = (bundle.productIds ?? []).map((id) => String(id));
-
-    if (products.length !== productIds.length) {
-      const present = new Set(products.map((doc) => String(doc._id)));
-      throw new BadRequestException({
-        error: 'products_not_found',
-        missing: productIds.filter((id) => !present.has(id)),
-      });
-    }
-
-    const inactive = products.filter((doc) => doc.status !== 'available');
-    if (inactive.length) {
-      throw new BadRequestException({
-        error: 'products_not_active',
-        missing: inactive.map((doc) => String(doc._id)),
-        message: 'All products in the bundle must be available',
-      });
-    }
   }
 
   private async requireOwnedBundle(
@@ -283,6 +257,13 @@ export class BundleService {
       updatedAt: (doc as { updatedAt?: Date }).updatedAt?.toISOString?.(),
     };
   }
+}
+
+/** `in_review` si algún producto está `in_review`; si no, `available`. */
+function reviewStatus(products: ProductDocument[]): BundleStatus {
+  return products.some((doc) => doc.status === 'in_review')
+    ? 'in_review'
+    : 'available';
 }
 
 function buildBundleCategories(products: ProductDocument[]): string[] {
