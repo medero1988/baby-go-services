@@ -81,12 +81,16 @@ Confirmación: `{ "acceptedTerms": true }`. Requiere cell validado + `stripeConn
 
 ## Products `/v1/products`
 
-Create (draft): `{ category, title, description, price, attributes? }`.  
+Create (`in_review`; un admin lo pasa a `available` directo en DB): `{ category, title, description, price, attributes? }`.  
 `title` único por provider (case-insensitive) → `title_not_available`.
 
 List: `GET /v1/products?page=1&limit=20&status=&category=` → `{ items, page, limit, total, totalPages }`. Default page=1, limit=20, máx 100.
 
-PATCH parcial: `title`, `description`, `category`, `price` (merge; `offer: null` saca oferta), `attributes` (merge; key `null` borra), `status`. Fotos **no** van en PATCH.
+PATCH parcial: `title`, `description`, `category`, `price` (merge; `offer: null` saca oferta), `attributes` (merge; key `null` borra), `status`.
+
+Status: `available | rented | in_review | inactive`. Solo `available` aparece en la búsqueda de clientes. El provider puede alternar `available` ↔ `inactive` vía PATCH; desde `in_review`/`rented` → 400 `invalid_status_transition`.
+
+Fotos **no** van en PATCH.
 
 Medias: `POST /:id/medias` form-data field **`media`** (File). Máx 8, 5MB, png/jpeg/webp/gif. Respuesta:
 
@@ -99,7 +103,6 @@ Medias: `POST /:id/medias` form-data field **`media`** (File). Máx 8, 5MB, png/
 }
 ```
 
-`POST /:id/save` → `active`. Completitud: title, description, category, `price.list > 0`, attributes con valor, ≥1 media. Si falta: `product_incomplete` + `missing: []`.
 
 ---
 

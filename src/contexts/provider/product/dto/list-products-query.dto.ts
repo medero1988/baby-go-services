@@ -2,7 +2,12 @@ import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { ProductStatus } from '../product.types';
 
-const PRODUCT_STATUSES: ProductStatus[] = ['draft', 'active', 'inactive'];
+const PRODUCT_STATUSES: ProductStatus[] = [
+  'available',
+  'rented',
+  'in_review',
+  'inactive',
+];
 
 export class ListProductsQueryDto {
   @IsOptional()

@@ -1,10 +1,6 @@
-import {
-  ProductPrice,
-  ProductResponse,
-  ProductStatus,
-} from '../product/product.types';
+import { ProductPrice, ProductResponse } from '../product/product.types';
 
-export type BundleStatus = ProductStatus;
+export type BundleStatus = 'draft' | 'active' | 'inactive';
 
 export type BundleResponse = {
   id: string;

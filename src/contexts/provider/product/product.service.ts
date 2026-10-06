@@ -9,7 +9,10 @@ import { StorageService } from '../../../shared/storage/storage.service';
 import { Bundle, BundleDocument } from '../bundle/bundle.schema';
 import { StoreService } from '../store/store.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  PROVIDER_SETTABLE_PRODUCT_STATUSES,
+  UpdateProductDto,
+} from './dto/update-product.dto';
 import { Product, ProductDocument, ProductMedia } from './product.schema';
 import { hasPricePatch, mergePrice, normalizePrice } from './product-price';
 import {
@@ -17,6 +20,7 @@ import {
   ProductListResponse,
   ProductMediaResponse,
   ProductResponse,
+  ProductStatus,
 } from './product.types';
 
 const MAX_PRODUCT_MEDIAS = 8;
@@ -35,7 +39,7 @@ export class ProductService {
   ) {}
 
   /**
-   * Crea un producto en la store del provider (estado `draft` hasta medias/save).
+   * Crea un producto en la store del provider (estado `in_review` hasta que un admin lo apruebe).
    * `attributes` se persiste tal cual lo envía el front.
    */
   async create(
@@ -57,7 +61,7 @@ export class ProductService {
       price: normalizePrice(dto.price),
       attributes: dto.attributes ?? {},
       medias: [],
-      status: 'draft',
+      status: 'in_review',
     });
 
     return this.toResponse(product.toObject() as ProductDocument);
@@ -65,7 +69,7 @@ export class ProductService {
 
   /**
    * PATCH parcial de un producto propio.
-   * Si el resultado queda `active`, se revalida completitud.
+   * `status`: solo `available` ↔ `inactive`; desde `in_review`/`rented` → 400.
    */
   async update(
     productId: string,
@@ -76,6 +80,10 @@ export class ProductService {
 
     if (!hasPatchFields(dto)) {
       throw new BadRequestException({ error: 'no_fields_to_update' });
+    }
+
+    if (dto.status !== undefined) {
+      assertProviderStatusTransition(product.status);
     }
 
     if (dto.category !== undefined) {
@@ -104,10 +112,6 @@ export class ProductService {
 
     if (dto.status !== undefined) {
       product.status = dto.status;
-    }
-
-    if (product.status === 'active') {
-      this.assertReadyToActivate(product);
     }
 
     await product.save();
@@ -360,53 +364,6 @@ export class ProductService {
     return { success: true };
   }
 
-  /**
-   * Save product: draft → active.
-   * Requiere título, descripción, categoría, precio, attributes y ≥1 media.
-   */
-  async save(productId: string, userId: string): Promise<ProductResponse> {
-    const product = await this.requireOwnedProduct(productId, userId);
-    this.assertReadyToActivate(product);
-    product.status = 'active';
-    await product.save();
-    return this.toResponse(product.toObject() as ProductDocument);
-  }
-
-  private assertReadyToActivate(product: ProductDocument): void {
-    const missing: string[] = [];
-
-    if (!product.title?.trim()) missing.push('title');
-    if (!product.description?.trim()) missing.push('description');
-    if (!product.category?.trim()) missing.push('category');
-
-    const list = product.price?.list;
-    if (typeof list !== 'number' || !Number.isFinite(list) || list <= 0) {
-      missing.push('price');
-    }
-
-    if (!hasMeaningfulAttributes(product.attributes)) {
-      missing.push('attributes');
-    }
-
-    const medias = (product.medias ?? []).filter((m) => m.url?.trim());
-    if (!medias.length) {
-      missing.push('medias');
-    }
-
-    if (missing.length) {
-      throw new BadRequestException({
-        error: 'product_incomplete',
-        missing,
-        message:
-          'Complete title, description, category, price, attributes and at least one photo before activating',
-      });
-    }
-
-    if (product.price?.offer !== undefined) {
-      normalizePrice(product.price);
-    }
-  }
-
   private async requireOwnedProduct(
     productId: string,
     userId: string,
@@ -602,34 +559,14 @@ function mergeAttributes(
   return next;
 }
 
-function hasMeaningfulAttributes(
-  attributes: Record<string, unknown> | undefined,
-): boolean {
+/** El provider solo cambia el status de productos `available` o `inactive`. */
+function assertProviderStatusTransition(current: ProductStatus): void {
   if (
-    !attributes ||
-    typeof attributes !== 'object' ||
-    Array.isArray(attributes)
+    !(PROVIDER_SETTABLE_PRODUCT_STATUSES as ProductStatus[]).includes(current)
   ) {
-    return false;
+    throw new BadRequestException({
+      error: 'invalid_status_transition',
+      message: `Cannot change status of a product that is ${current}; only available ↔ inactive is allowed`,
+    });
   }
-
-  return Object.values(attributes).some((value) =>
-    isMeaningfulAttribute(value),
-  );
-}
-
-function isMeaningfulAttribute(value: unknown): boolean {
-  if (value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value === 'boolean') return true;
-  if (Array.isArray(value)) {
-    return value.some((item) => isMeaningfulAttribute(item));
-  }
-  if (typeof value === 'object') {
-    return Object.values(value as Record<string, unknown>).some((item) =>
-      isMeaningfulAttribute(item),
-    );
-  }
-  return false;
 }

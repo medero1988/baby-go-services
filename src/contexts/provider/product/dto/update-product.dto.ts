@@ -11,9 +11,14 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { ProductAttributes, ProductStatus } from '../product.types';
+import {
+  ProductAttributes,
+  ProviderSettableProductStatus,
+} from '../product.types';
 
-const PRODUCT_STATUSES: ProductStatus[] = ['draft', 'active', 'inactive'];
+/** El provider solo puede alternar `available` ↔ `inactive`. */
+export const PROVIDER_SETTABLE_PRODUCT_STATUSES: ProviderSettableProductStatus[] =
+  ['available', 'inactive'];
 
 export class UpdateProductPriceDto {
   @IsOptional()
@@ -73,6 +78,6 @@ export class UpdateProductDto {
   attributes?: ProductAttributes;
 
   @IsOptional()
-  @IsIn(PRODUCT_STATUSES)
-  status?: ProductStatus;
+  @IsIn(PROVIDER_SETTABLE_PRODUCT_STATUSES)
+  status?: ProviderSettableProductStatus;
 }

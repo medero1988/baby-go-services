@@ -138,18 +138,6 @@ export class ProductController {
       user.id,
     );
   }
-
-  /**
-   * Save product (pantalla Photos del Miro).
-   * Requiere título, descripción, categoría, precio, attributes y ≥1 media → `active`.
-   */
-  @Post('/:id/save')
-  save(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.productService.save(
-      this.parseId(id, 'invalid_product_id'),
-      user.id,
-    );
-  }
 }
 
 /** Prefiere `media`; si no, primer archivo con field conocido. */

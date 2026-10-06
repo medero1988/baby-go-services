@@ -228,12 +228,12 @@ export class BundleService {
       });
     }
 
-    const inactive = products.filter((doc) => doc.status !== 'active');
+    const inactive = products.filter((doc) => doc.status !== 'available');
     if (inactive.length) {
       throw new BadRequestException({
         error: 'products_not_active',
         missing: inactive.map((doc) => String(doc._id)),
-        message: 'All products in the bundle must be active',
+        message: 'All products in the bundle must be available',
       });
     }
 

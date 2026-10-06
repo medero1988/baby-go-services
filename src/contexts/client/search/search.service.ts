@@ -241,7 +241,7 @@ export class SearchService {
     storeIds: Types.ObjectId[] | null,
     categories: CategoryFilter[],
   ): Record<string, unknown> {
-    const filter: Record<string, unknown> = { status: 'active' };
+    const filter: Record<string, unknown> = { status: 'available' };
     if (storeIds) filter.storeId = { $in: idVariants(storeIds) };
     if (categories.length) {
       filter.$or = categories.map((category) =>
