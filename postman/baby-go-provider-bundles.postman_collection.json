@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-bundles000001",
     "name": "Baby Go — Provider Bundles",
-    "description": "Bundles (combo ≥2 productos propios). Bearer JWT.\n\n**Create:** `{ products: [mongoId, ...], title, description, price }` (mín 2, máx 10, únicos).\n`category` lo calcula el BE: `[\"bundle\", ...categorías hijas]`.\n**List:** GET /v1/bundles?page=&limit=&status=&category= → `{ items, page, limit, total, totalPages }`. `products` viene expandido.\n**PATCH:** products, title, description, price, status.\n**Save:** POST /:id/save. Los productos tienen que estar `active` (`products_not_active`). Otros: `bundle_incomplete`, `products_not_found`, `title_not_available`.\nDELETE no borra los productos.\n\nCarpeta 1. Crear tiene bodies con IDs reales de catálogo de prueba.",
+    "description": "Bundles (combo ≥2 productos propios). Bearer JWT.\n\n**Create:** `{ products: [mongoId, ...], title, description, price }` (mín 2, máx 10, únicos).\n`category` lo calcula el BE: `[\"bundle\", ...categorías hijas]`.\n**List:** GET /v1/bundles?page=&limit=&status=&category= → `{ items, page, limit, total, totalPages }`. `products` viene expandido.\n**PATCH:** products, title, description, price, status.\n**Status:** `available | rented | in_review | inactive`. `in_review` si algún producto está `in_review`, si no `available`. El provider alterna `available` ↔ `inactive` (`invalid_status_transition`). Otros: `products_not_found`, `title_not_available`.\nDELETE no borra los productos.\n\nCarpeta 1. Crear tiene bodies con IDs reales de catálogo de prueba.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -58,9 +58,9 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "draft",
+                  "value": "available",
                   "disabled": true,
-                  "description": "draft | active | inactive"
+                  "description": "available | rented | in_review | inactive"
                 },
                 {
                   "key": "category",
@@ -757,36 +757,15 @@
                 "{{bundleId}}"
               ]
             },
-            "description": "`status`: draft | active | inactive. Pasar a active corre las mismas reglas que save."
+            "description": "`status`: available | inactive (solo desde available/inactive). Pasar a available deja el bundle in_review si algún producto está in_review."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "3. Publicar / borrar",
+      "name": "3. Borrar",
       "item": [
-        {
-          "name": "Save bundle (activar)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/bundles/{{bundleId}}/save",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "bundles",
-                "{{bundleId}}",
-                "save"
-              ]
-            },
-            "description": "draft → active. Requiere title, description, price.list > 0, ≥2 productos propios y que estén `active`."
-          },
-          "response": []
-        },
         {
           "name": "Eliminar bundle",
           "request": {

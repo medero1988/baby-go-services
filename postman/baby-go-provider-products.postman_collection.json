@@ -54,9 +54,9 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "draft",
+                  "value": "available",
                   "disabled": true,
-                  "description": "draft | active | inactive"
+                  "description": "available | rented | in_review | inactive"
                 },
                 {
                   "key": "category",
@@ -184,7 +184,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -226,7 +226,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -268,7 +268,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -310,7 +310,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -352,7 +352,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -394,7 +394,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -436,7 +436,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -478,7 +478,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -520,7 +520,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -562,7 +562,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -604,7 +604,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -646,7 +646,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -688,7 +688,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         },
@@ -730,7 +730,7 @@
                 "products"
               ]
             },
-            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: draft`. Guardá `id` → productId."
+            "description": "Ejemplo de catálogo. Contrato create:\n`{ category: string, title: string, description: string, price: { list, offer?, activeFrom?, activeUntil? }, attributes?: object }`.\n`title` único por provider → `title_not_available`.\nQueda `status: in_review` (un admin lo pasa a `available`). Guardá `id` → productId."
           },
           "response": []
         }
@@ -880,7 +880,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "draft | active | inactive. Si el resultado es `active`, corre la misma validación de completitud que save."
+            "description": "Solo `available` | `inactive`, y solo si el producto ya está `available` o `inactive`. Desde `in_review`/`rented` → 400 `invalid_status_transition`."
           },
           "response": []
         },
@@ -896,7 +896,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"category\": \"stroller\",\n  \"title\": \"Bugaboo Fox 5 Plus\",\n  \"description\": \"Compacto, máx 22kg.\",\n  \"price\": {\n    \"list\": 16\n  },\n  \"attributes\": {\n    \"foldable\": true\n  },\n  \"status\": \"draft\"\n}"
+              "raw": "{\n  \"category\": \"stroller\",\n  \"title\": \"Bugaboo Fox 5 Plus\",\n  \"description\": \"Compacto, máx 22kg.\",\n  \"price\": {\n    \"list\": 16\n  },\n  \"attributes\": {\n    \"foldable\": true\n  },\n  \"status\": \"inactive\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/products/{{productId}}",
@@ -1029,32 +1029,6 @@
               ]
             },
             "description": "Borra la foto del producto **y de Cloudinary** (no deja basura en el bucket). `{ success: true }`."
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "3. Publicar",
-      "item": [
-        {
-          "name": "3. Save product (activar)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/v1/products/{{productId}}/save",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "products",
-                "{{productId}}",
-                "save"
-              ]
-            },
-            "description": "Pasa de `draft` → `active`.\nRequiere title, description, category, price.list > 0, attributes con contenido y ≥1 media.\nSi falta algo → 400 `product_incomplete` + `missing: [...]`.\nSi hay oferta inválida → 400 `invalid_offer_price` / `invalid_offer_dates`."
           },
           "response": []
         }

@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { ProductService } from '../product/product.service';
+import {
+  ProductService,
+  assertProviderStatusTransition,
+} from '../product/product.service';
 import { ProductDocument } from '../product/product.schema';
 import {
   hasPricePatch,
@@ -53,7 +56,7 @@ export class BundleService {
       description: dto.description.trim(),
       price: normalizePrice(dto.price),
       category: buildBundleCategories(products),
-      status: 'draft',
+      status: reviewStatus(products),
     });
 
     return this.toResponse(bundle.toObject() as BundleDocument, products);
@@ -137,6 +140,10 @@ export class BundleService {
       throw new BadRequestException({ error: 'no_fields_to_update' });
     }
 
+    if (dto.status !== undefined) {
+      assertProviderStatusTransition(bundle.status);
+    }
+
     if (dto.title !== undefined) {
       const title = dto.title.trim();
       await this.assertTitleAvailable(userId, title, bundleId);
@@ -167,21 +174,11 @@ export class BundleService {
       bundle.status = dto.status;
     }
 
-    if (bundle.status === 'active') {
-      const products = await this.loadBundleProducts(userId, bundle);
-      this.assertReadyToActivate(bundle, products);
+    const products = await this.loadBundleProducts(userId, bundle);
+    if (bundle.status === 'available' || bundle.status === 'in_review') {
+      bundle.status = reviewStatus(products);
     }
 
-    await bundle.save();
-    const products = await this.loadBundleProducts(userId, bundle);
-    return this.toResponse(bundle.toObject() as BundleDocument, products);
-  }
-
-  async save(bundleId: string, userId: string): Promise<BundleResponse> {
-    const bundle = await this.requireOwnedBundle(bundleId, userId);
-    const products = await this.loadBundleProducts(userId, bundle);
-    this.assertReadyToActivate(bundle, products);
-    bundle.status = 'active';
     await bundle.save();
     return this.toResponse(bundle.toObject() as BundleDocument, products);
   }
@@ -190,56 +187,6 @@ export class BundleService {
     const bundle = await this.requireOwnedBundle(bundleId, userId);
     await this.bundleModel.deleteOne({ _id: bundle._id }).exec();
     return { success: true };
-  }
-
-  private assertReadyToActivate(
-    bundle: BundleDocument,
-    products: ProductDocument[],
-  ): void {
-    const missing: string[] = [];
-    const productIds = (bundle.productIds ?? []).map((id) => String(id));
-
-    if (!bundle.title?.trim()) missing.push('title');
-    if (!bundle.description?.trim()) missing.push('description');
-
-    const list = bundle.price?.list;
-    if (typeof list !== 'number' || !Number.isFinite(list) || list <= 0) {
-      missing.push('price');
-    }
-
-    if (productIds.length < 2) {
-      missing.push('products');
-    }
-
-    if (missing.length) {
-      throw new BadRequestException({
-        error: 'bundle_incomplete',
-        missing,
-        message:
-          'Complete title, description, price and at least two products before activating',
-      });
-    }
-
-    if (products.length !== productIds.length) {
-      const present = new Set(products.map((doc) => String(doc._id)));
-      throw new BadRequestException({
-        error: 'products_not_found',
-        missing: productIds.filter((id) => !present.has(id)),
-      });
-    }
-
-    const inactive = products.filter((doc) => doc.status !== 'active');
-    if (inactive.length) {
-      throw new BadRequestException({
-        error: 'products_not_active',
-        missing: inactive.map((doc) => String(doc._id)),
-        message: 'All products in the bundle must be active',
-      });
-    }
-
-    if (bundle.price?.offer !== undefined) {
-      normalizePrice(bundle.price);
-    }
   }
 
   private async requireOwnedBundle(
@@ -310,6 +257,13 @@ export class BundleService {
       updatedAt: (doc as { updatedAt?: Date }).updatedAt?.toISOString?.(),
     };
   }
+}
+
+/** `in_review` si algún producto está `in_review`; si no, `available`. */
+function reviewStatus(products: ProductDocument[]): BundleStatus {
+  return products.some((doc) => doc.status === 'in_review')
+    ? 'in_review'
+    : 'available';
 }
 
 function buildBundleCategories(products: ProductDocument[]): string[] {

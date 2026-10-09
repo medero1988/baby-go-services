@@ -1,12 +1,11 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { PRODUCT_STATUSES } from '../../product/dto/list-products-query.dto';
 import { BundleStatus } from '../bundle.types';
-
-const BUNDLE_STATUSES: BundleStatus[] = ['draft', 'active', 'inactive'];
 
 export class ListBundlesQueryDto {
   @IsOptional()
-  @IsIn(BUNDLE_STATUSES)
+  @IsIn(PRODUCT_STATUSES)
   status?: BundleStatus;
 
   /** Match si el array `category` contiene este valor (`bundle`, `stroller`, …). */
