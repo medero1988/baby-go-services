@@ -30,6 +30,8 @@ export interface AuthConfig {
   devBypassAuth: boolean;
   devUserEmail: string;
   devUserName: string;
+  /** API key del módulo admin. Header `x-admin-key`. */
+  adminApiKey: string;
 }
 
 export interface MailConfig {

@@ -39,17 +39,20 @@ function build(doc?: ReturnType<typeof makeDoc>) {
       lean: () => ({ exec: () => Promise.resolve(null) }),
     })),
   };
+  const bundleModel = {
+    updateMany: jest.fn(() => ({ exec: () => Promise.resolve() })),
+  };
   const storeService = {
     requireStoreForProvider: jest.fn().mockResolvedValue({ _id: 'store-1' }),
   };
   const storage = { imageUrls: jest.fn(() => ({})) };
   const service = new ProductService(
     productModel as never,
-    {} as never,
+    bundleModel as never,
     storeService as never,
     storage as never,
   );
-  return { service, productModel };
+  return { service, productModel, bundleModel };
 }
 
 async function expectError(promise: Promise<unknown>, error: string) {
@@ -116,14 +119,79 @@ describe('ProductService', () => {
       expect(doc.save).not.toHaveBeenCalled();
     });
 
-    it('still allows non-status edits on in_review products', async () => {
-      const doc = makeDoc('in_review');
-      const { service } = build(doc);
+    it('keeps the current status when only the price changes', async () => {
+      const doc = makeDoc('available');
+      const { service, bundleModel } = build(doc);
       const res = await service.update(PRODUCT_ID, USER_ID, {
-        description: 'new',
+        price: { list: 20 },
       });
-      expect(res.description).toBe('new');
-      expect(res.status).toBe('in_review');
+      expect(res.price.list).toBe(20);
+      expect(res.status).toBe('available');
+      expect(bundleModel.updateMany).not.toHaveBeenCalled();
+    });
+
+    it.each(['available', 'inactive', 'rented', 'in_review'] as const)(
+      'sends a %s product back to in_review when its data changes',
+      async (from) => {
+        const doc = makeDoc(from);
+        const { service, bundleModel } = build(doc);
+        const res = await service.update(PRODUCT_ID, USER_ID, {
+          description: 'new',
+        });
+        expect(res.description).toBe('new');
+        expect(res.status).toBe('in_review');
+        expect(bundleModel.updateMany).toHaveBeenCalledWith(
+          {
+            productIds: new Types.ObjectId(PRODUCT_ID),
+            status: 'available',
+          },
+          { $set: { status: 'in_review' } },
+        );
+      },
+    );
+  });
+
+  describe('removeAll', () => {
+    it('deletes every product, its photos and the provider bundles', async () => {
+      const doc = makeDoc('available');
+      doc.medias = [
+        { url: 'https://cdn/a.png', publicId: 'products/a' },
+      ] as never;
+      const productModel = {
+        find: jest.fn(() => ({ exec: () => Promise.resolve([doc]) })),
+        deleteMany: jest.fn(() => ({
+          exec: () => Promise.resolve({ deletedCount: 1 }),
+        })),
+      };
+      const bundleModel = {
+        deleteMany: jest.fn(() => ({
+          exec: () => Promise.resolve({ deletedCount: 1 }),
+        })),
+      };
+      const storage = {
+        delete: jest.fn().mockResolvedValue(undefined),
+        imageUrls: jest.fn(() => ({})),
+      };
+      const service = new ProductService(
+        productModel as never,
+        bundleModel as never,
+        {} as never,
+        storage as never,
+      );
+
+      const res = await service.removeAll(USER_ID);
+
+      expect(res).toEqual({ success: true, deleted: 1 });
+      expect(storage.delete).toHaveBeenCalledWith({
+        url: 'https://cdn/a.png',
+        publicId: 'products/a',
+      });
+      expect(bundleModel.deleteMany).toHaveBeenCalledWith({
+        $expr: { $eq: [{ $toString: '$userId' }, USER_ID] },
+      });
+      expect(productModel.deleteMany).toHaveBeenCalledWith({
+        _id: { $in: [doc._id] },
+      });
     });
   });
 

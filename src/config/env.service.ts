@@ -132,6 +132,10 @@ export class EnvService {
     return this.auth.devUserName;
   }
 
+  get adminApiKey(): string {
+    return this.auth.adminApiKey;
+  }
+
   get resendApiKey(): string {
     return this.mail.resendApiKey;
   }

@@ -1,0 +1,80 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-admin0000001",
+    "name": "Baby Go — Admin",
+    "description": "Gestión de la app. Sin JWT. Header `x-admin-key: {{adminApiKey}}` (`ADMIN_API_KEY`).\n\n**PATCH /v1/admin/providers/:providerId/products/status** `{ status }` deja todos los productos de ese provider en ese status.\n`status`: `available | rented | in_review | inactive`.\n\n**POST /v1/admin/providers/:providerId/products/approve** aprueba todos los `in_review` de ese provider (`available`).\n\n**POST /v1/admin/products/approve** `{ productIds: string[] }` aprueba esos productos. Tienen que estar `in_review`. Si falta alguno: 404 `products_not_found`. Si alguno no está `in_review`: 400 `product_not_in_review`.\n\n`providerId` es el userId del provider (dueño de la store). 404 `provider_not_found`.\nLos bundles `available` o `in_review` de ese provider siguen el status de sus productos. Bundles `inactive` o `rented` no se tocan.\nSin key o key incorrecta: 401 `invalid_admin_api_key`. Sin `ADMIN_API_KEY` en el server: 401 `admin_not_configured`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "noauth" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "adminApiKey", "value": "" },
+    { "key": "providerId", "value": "" },
+    { "key": "productId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Admin products",
+      "item": [
+        {
+          "name": "1. Set all products of a provider",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-admin-key", "value": "{{adminApiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"available\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/providers/{{providerId}}/products/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "providers", "{{providerId}}", "products", "status"]
+            },
+            "description": "`providerId` = userId del provider. `{ providerId, status, updated, bundlesUpdated }`."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Approve all products of a provider",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-admin-key", "value": "{{adminApiKey}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/providers/{{providerId}}/products/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "providers", "{{providerId}}", "products", "approve"]
+            },
+            "description": "Solo los que están `in_review` pasan a `available`. `{ providerId, approved, bundlesUpdated }`."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Approve selected products",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-admin-key", "value": "{{adminApiKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productIds\": [\"{{productId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/products/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "admin", "products", "approve"]
+            },
+            "description": "Todos los ids tienen que existir y estar `in_review`. `{ approved, bundlesUpdated }`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

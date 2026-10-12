@@ -53,6 +53,13 @@ export class ProductController {
     return this.productService.findAllByOwner(user.id, query);
   }
 
+  /** Borra todos los productos del provider, sus fotos y sus bundles. */
+  @Delete()
+  @HttpCode(200)
+  removeAll(@CurrentUser() user: AuthUser) {
+    return this.productService.removeAll(user.id);
+  }
+
   /** Detalle de un producto propio. */
   @Get('/:id')
   getOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {

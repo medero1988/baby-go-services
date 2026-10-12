@@ -69,7 +69,8 @@ export class ProductService {
 
   /**
    * PATCH parcial de un producto propio.
-   * `status`: solo `available` ↔ `inactive`; desde `in_review`/`rented` → 400.
+   * Título, descripción, categoría o atributos lo devuelven a `in_review`. El precio no.
+   * `status` solo alterna `available` ↔ `inactive`, y solo si el body no trae otros campos.
    */
   async update(
     productId: string,
@@ -82,7 +83,8 @@ export class ProductService {
       throw new BadRequestException({ error: 'no_fields_to_update' });
     }
 
-    if (dto.status !== undefined) {
+    const contentChanged = hasContentPatch(dto);
+    if (dto.status !== undefined && !contentChanged) {
       assertProviderStatusTransition(product.status);
     }
 
@@ -110,11 +112,16 @@ export class ProductService {
       product.markModified('attributes');
     }
 
-    if (dto.status !== undefined) {
+    if (contentChanged) {
+      product.status = 'in_review';
+    } else if (dto.status !== undefined) {
       product.status = dto.status;
     }
 
     await product.save();
+    if (contentChanged) {
+      await this.markBundlesInReview(String(product._id));
+    }
     return this.toResponse(product.toObject() as ProductDocument);
   }
 
@@ -168,9 +175,7 @@ export class ProductService {
     const limit = query.limit ?? DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
 
-    const filter: Record<string, unknown> = {
-      $expr: { $eq: [{ $toString: '$userId' }, userId] },
-    };
+    const filter: Record<string, unknown> = ownedBy(userId);
     if (query.status) {
       filter.status = query.status;
     }
@@ -258,7 +263,7 @@ export class ProductService {
       format: stored.format,
       bytes: stored.bytes,
     } as ProductMedia & { _id: Types.ObjectId });
-    await product.save();
+    await this.saveInReview(product);
 
     return this.toMediaResponse({
       _id: mediaId,
@@ -325,7 +330,7 @@ export class ProductService {
       bytes: stored.bytes,
     } as ProductMedia & { _id: Types.ObjectId };
     product.markModified('medias');
-    await product.save();
+    await this.saveInReview(product);
 
     return this.toMediaResponse(product.medias[idx]);
   }
@@ -345,8 +350,31 @@ export class ProductService {
     await this.deleteMediaFromBucket(media);
     product.medias = product.medias.filter((m) => String(m._id) !== mediaId);
     product.markModified('medias');
-    await product.save();
+    await this.saveInReview(product);
     return { success: true };
+  }
+
+  /**
+   * DELETE /products — borra todos los productos del provider, sus fotos
+   * y todos sus bundles (quedarían sin productos).
+   */
+  async removeAll(userId: string): Promise<{ success: true; deleted: number }> {
+    const products = await this.productModel.find(ownedBy(userId)).exec();
+
+    await Promise.all(
+      products.map((product) =>
+        this.deleteAllMediasFromBucket(product.medias ?? []),
+      ),
+    );
+
+    await this.bundleModel.deleteMany(ownedBy(userId)).exec();
+    if (products.length) {
+      await this.productModel
+        .deleteMany({ _id: { $in: products.map((product) => product._id) } })
+        .exec();
+    }
+
+    return { success: true, deleted: products.length };
   }
 
   /**
@@ -386,6 +414,25 @@ export class ProductService {
     medias: ProductMedia[],
   ): Promise<void> {
     await Promise.all(medias.map((m) => this.deleteMediaFromBucket(m)));
+  }
+
+  /** Un cambio de ficha o de fotos vuelve a revisión, y los bundles `available` que lo incluyen también. */
+  private async saveInReview(product: ProductDocument): Promise<void> {
+    product.status = 'in_review';
+    await product.save();
+    await this.markBundlesInReview(String(product._id));
+  }
+
+  private async markBundlesInReview(productId: string): Promise<void> {
+    await this.bundleModel
+      .updateMany(
+        {
+          productIds: new Types.ObjectId(productId),
+          status: 'available',
+        },
+        { $set: { status: 'in_review' } },
+      )
+      .exec();
   }
 
   /** Saca el producto de bundles; elimina bundles que queden inválidos (<2 items). */
@@ -533,14 +580,24 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function ownedBy(userId: string): Record<string, unknown> {
+  return { $expr: { $eq: [{ $toString: '$userId' }, userId] } };
+}
+
 function hasPatchFields(dto: UpdateProductDto): boolean {
+  return (
+    hasContentPatch(dto) ||
+    (dto.price !== undefined && hasPricePatch(dto.price)) ||
+    dto.status !== undefined
+  );
+}
+
+function hasContentPatch(dto: UpdateProductDto): boolean {
   return (
     dto.category !== undefined ||
     dto.title !== undefined ||
     dto.description !== undefined ||
-    (dto.price !== undefined && hasPricePatch(dto.price)) ||
-    dto.attributes !== undefined ||
-    dto.status !== undefined
+    dto.attributes !== undefined
   );
 }
 

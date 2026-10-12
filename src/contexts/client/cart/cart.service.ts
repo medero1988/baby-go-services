@@ -310,7 +310,7 @@ export class CartService {
     if (!bundle) {
       throw new NotFoundException({ error: 'bundle_not_found' });
     }
-    if (bundle.status !== 'active') {
+    if (bundle.status !== 'available') {
       throw new BadRequestException({ error: 'bundle_not_available' });
     }
     const memberIds = (bundle.productIds ?? []).map((id) => String(id));
@@ -323,11 +323,11 @@ export class CartService {
       : [];
     const membersAvailable =
       members.length === memberIds.length &&
-      members.every((product) => product.status === 'active');
+      members.every((product) => product.status === 'available');
     if (!membersAvailable) {
       throw new BadRequestException({
         error: 'bundle_not_available',
-        message: 'Bundle products must be active',
+        message: 'Bundle products must be available',
       });
     }
     return {
@@ -345,7 +345,7 @@ export class CartService {
     if (!product) {
       throw new NotFoundException({ error: 'product_not_found' });
     }
-    if (product.status !== 'active') {
+    if (product.status !== 'available') {
       throw new BadRequestException({ error: 'product_not_available' });
     }
     return product as ProductLean;
@@ -495,7 +495,7 @@ export class CartService {
     }
     const daily = effectiveDailyPrice(product.price, rentalStart);
     const media = product.medias?.[0];
-    const available = product.status === 'active';
+    const available = product.status === 'available';
     return {
       kind: 'product',
       id: String(product._id),
@@ -527,9 +527,9 @@ export class CartService {
       .filter((product): product is ProductLean => Boolean(product));
     const daily = effectiveDailyPrice(bundle.price, rentalStart);
     const available =
-      bundle.status === 'active' &&
+      bundle.status === 'available' &&
       members.length === (bundle.productIds ?? []).length &&
-      members.every((product) => product.status === 'active');
+      members.every((product) => product.status === 'available');
     const cover = members.find((product) => product.medias?.[0])?.medias?.[0];
     return {
       kind: 'bundle',

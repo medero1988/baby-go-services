@@ -11,4 +11,6 @@ export const ROUTES = {
   PROVIDER: `${API_VERSION}`,
   /** Configuración común: /api/v1/... */
   COMMON: `${API_VERSION}`,
+  /** Admin de la app: /api/v1/admin/... */
+  ADMIN: `${API_VERSION}/admin`,
 } as const;

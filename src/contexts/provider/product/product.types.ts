@@ -13,7 +13,7 @@ export type ProductPrice = {
 export type ProductAttributes = Record<string, unknown>;
 
 /**
- * - `in_review`: recién creado, oculto a clientes; un admin lo pasa a `available` (DB).
+ * - `in_review`: recién creado o editado (datos o fotos), oculto a clientes; un admin lo pasa a `available`.
  * - `available`: reservable, visible en la búsqueda de clientes.
  * - `rented`: alquilado (lo setea el flujo de órdenes).
  * - `inactive`: pausado por el provider, oculto a clientes.

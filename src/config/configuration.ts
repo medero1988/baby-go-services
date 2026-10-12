@@ -45,6 +45,7 @@ export default (): EnvConfig => {
           process.env.ENABLE_DEV_AUTH_BYPASS === '1'),
       devUserEmail: process.env.DEV_USER_EMAIL ?? 'dev@local.dev',
       devUserName: process.env.DEV_USER_NAME ?? 'Dev Local',
+      adminApiKey: process.env.ADMIN_API_KEY ?? '',
     },
     mail: {
       resendApiKey: process.env.RESEND_API_KEY ?? '',

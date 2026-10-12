@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
     "name": "Baby Go — Provider Products",
-    "description": "Productos del provider. Bearer JWT. Store 1:1 (no mandar storeId).\n\n**List:** GET /v1/products?page=1&limit=20&status=&category= → `{ items, page, limit, total, totalPages }` (default page=1, limit=20, máx 100).\n**Create:** `{ category, title, description, price, attributes? }` → draft. `title` único → `title_not_available`.\n**PATCH /:id** parcial: title, description, category, price (merge; offer:null quita oferta), attributes (merge; null borra key), status.\n**DELETE /:id** borra producto + todas las medias del bucket; lo saca de bundles (borra bundles con <2 productos).\n**Medias:** POST /:id/medias form-data field `media` (File). Máx 8 / 5MB. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }`.\n**DELETE media** también borra del bucket.\n**Save:** POST /:id/save → active. Completitud: title, description, category, price.list>0, attributes, ≥1 foto. 400 `product_incomplete` + `missing[]`.\n\nVariables: token, productId, mediaId.",
+    "description": "Productos del provider. Bearer JWT. Store 1:1 (no mandar storeId).\n\n**List:** GET /v1/products?page=1&limit=20&status=&category= → `{ items, page, limit, total, totalPages }` (default page=1, limit=20, máx 100).\n**Create:** `{ category, title, description, price, attributes? }` → draft. `title` único → `title_not_available`.\n**PATCH /:id** parcial: title, description, category, price (merge; offer:null quita oferta), attributes (merge; null borra key), status. Cambiar título, descripción, categoría, atributos o fotos devuelve el producto a `in_review`, y los bundles `available` que lo incluyen también. El precio no cambia el status. Un PATCH solo con `status` alterna `available` ↔ `inactive`.\n**DELETE /:id** borra producto + todas las medias del bucket; lo saca de bundles (borra bundles con <2 productos).\n**DELETE /v1/products** borra todos los productos del provider, sus fotos y todos sus bundles. Respuesta `{ success: true, deleted }`.\n**Medias:** POST /:id/medias form-data field `media` (File). Máx 8 / 5MB. Respuesta `{ id, url, width, height, format, bytes, urls: { original, thumbnail, card, detail } }`.\n**DELETE media** también borra del bucket.\n**Save:** POST /:id/save → active. Completitud: title, description, category, price.list>0, attributes, ≥1 foto. 400 `product_incomplete` + `missing[]`.\n\nVariables: token, productId, mediaId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -764,7 +764,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "Solo los campos enviados. 400 `title_not_available` si el nombre ya existe en otro producto del provider."
+            "description": "Solo los campos enviados. El producto vuelve a `in_review`. 400 `title_not_available` si el nombre ya existe en otro producto del provider."
           },
           "response": []
         },
@@ -793,7 +793,7 @@
                 "{{productId}}"
               ]
             },
-            "description": "price se mergea con el actual. Fechas DD/MM/YYYY o YYYY-MM-DD."
+            "description": "price se mergea con el actual y no cambia el status. Fechas DD/MM/YYYY o YYYY-MM-DD."
           },
           "response": []
         },
@@ -1054,6 +1054,20 @@
               ]
             },
             "description": "Borra el producto y **todas** sus medias del bucket Cloudinary.\nTambién lo saca de bundles del provider; si un bundle queda con <2 productos, se elimina el bundle.\nRespuesta `{ success: true }`. 404 `product_not_found`."
+          },
+          "response": []
+        },
+        {
+          "name": "4b. Delete all my products",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "products"]
+            },
+            "description": "Borra todos los productos del provider del token, sus fotos del bucket y todos sus bundles. `{ success: true, deleted }`."
           },
           "response": []
         }

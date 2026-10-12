@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards';
 import { ConfigModule } from './config';
 import { EnvService } from './config/env.service';
+import { AdminModule } from './contexts/admin/admin.module';
 import { ClientModule } from './contexts/client/client.module';
 import { PaymentsModule } from './contexts/payments/payments.module';
 import { ProviderModule } from './contexts/provider/provider.module';
@@ -35,6 +36,7 @@ import { TwilioModule } from './shared/twilio/twilio.module';
     }),
     ClientModule,
     ProviderModule,
+    AdminModule,
     SettingsModule,
   ],
   controllers: [AppController],

@@ -1,6 +1,6 @@
 # Baby Go — Postman (contrato para front)
 
-Importá las 8 collections + el environment `Baby-Go.postman_environment.json`.
+Importá las 9 collections + el environment `Baby-Go.postman_environment.json`.
 
 **Base URL:** `{{baseUrl}}` = `http://localhost:3000/api`  
 Rutas reales: `http://localhost:3000/api/v1/...`
@@ -31,6 +31,7 @@ Hoy **no hay `role` en el usuario**. Provider vs client se infiere por el flujo 
 | `baby-go-payments.postman_collection.json` | client — Stripe | `/v1/payments` |
 | `baby-go-client-search.postman_collection.json` | client — catálogo | `/v1/search` |
 | `baby-go-client-cart.postman_collection.json` | client — carrito | `/v1/cart` |
+| `baby-go-admin.postman_collection.json` | admin de la app — API key | `/v1/admin` |
 
 Orden de montaje provider: **Auth → Store → Products → Bundles**. Settings GET es público (picker de país/tel).
 
@@ -82,14 +83,16 @@ Confirmación: `{ "acceptedTerms": true }`. Requiere cell validado + `stripeConn
 
 ## Products `/v1/products`
 
-Create (`in_review`; un admin lo pasa a `available` directo en DB): `{ category, title, description, price, attributes? }`.  
+Create (`in_review`; un admin lo pasa a `available` con `/v1/admin/.../approve`): `{ category, title, description, price, attributes? }`.  
 `title` único por provider (case-insensitive) → `title_not_available`.
 
 List: `GET /v1/products?page=1&limit=20&status=&category=` → `{ items, page, limit, total, totalPages }`. Default page=1, limit=20, máx 100.
 
-PATCH parcial: `title`, `description`, `category`, `price` (merge; `offer: null` saca oferta), `attributes` (merge; key `null` borra), `status`.
+`DELETE /v1/products` borra todos los productos del provider, sus fotos del bucket y todos sus bundles. Respuesta `{ success: true, deleted }`.
 
-Status: `available | rented | in_review | inactive`. Solo `available` aparece en la búsqueda de clientes. El provider puede alternar `available` ↔ `inactive` vía PATCH; desde `in_review`/`rented` → 400 `invalid_status_transition`.
+PATCH parcial: `title`, `description`, `category`, `price` (merge; `offer: null` saca oferta), `attributes` (merge; key `null` borra), `status`. Cambiar título, descripción, categoría, atributos o fotos (`POST`/`PUT`/`DELETE` medias) devuelve el producto a `in_review`. El precio no. Los bundles `available` que lo incluyen también pasan a `in_review`.
+
+Status: `available | rented | in_review | inactive`. Solo `available` aparece en la búsqueda de clientes. El provider puede alternar `available` ↔ `inactive` con un PATCH que solo manda `status`; desde `in_review`/`rented` → 400 `invalid_status_transition`.
 
 Fotos **no** van en PATCH.
 
@@ -136,7 +139,7 @@ Webhook: no desde Postman; Stripe CLI → `/api/webhooks/stripe`.
 
 Público (sin JWT). Query `offset` (default 0) y `limit` (default 20, máx 100).
 
-Body opcional. Vacío → productos y combos `active` de todas las stores.
+Body opcional. Vacío → productos y combos `available` de todas las stores.
 
 - `destination.country` matchea `store.country`. `city` se busca en `addressLine1/2` (la store no tiene campo city).
 - `categories[].name` es el id del taxonomy (`stroller`, `bike`, `crib`, …). `types` matchea atributos `type|style|eceGroup|frameType|boxType|size`. `accessories` matchea `attributes.accessories`.
@@ -154,7 +157,7 @@ Bearer JWT. Un carrito por usuario.
 
 - `GET /v1/shopping-cart-count` → `{ count }`. Cada producto y cada bundle suma 1. Los productos que van dentro de un bundle no suman. Sin carrito: `0`.
 - `GET /v1/cart` → carrito. Vacío: `productsByStore: []`, `totals.amount: 0`.
-- `POST /v1/cart` crea o edita el carrito. Un ítem (`productId` o `bundleId`) o varios: `productIds: [{ id, accessories? }]` y `bundleIds: string[]`. Solo entran productos y bundles `active`. Si el bundle incluye un producto que no está `active`, responde `bundle_not_available` y no guarda nada. Si la línea ya está, actualiza accesorios (solo producto). No hay stock numérico por producto.
+- `POST /v1/cart` crea o edita el carrito. Un ítem (`productId` o `bundleId`) o varios: `productIds: [{ id, accessories? }]` y `bundleIds: string[]`. Solo entran productos y bundles `available`. Si el bundle incluye un producto que no está `available`, responde `bundle_not_available` y no guarda nada. Si la línea ya está, actualiza accesorios (solo producto). No hay stock numérico por producto.
 - `PATCH /v1/cart` actualiza el período (`start` + `end`) y/o el handoff de una store (`storeId` + `acquisition` + `devolution`).
 - `PUT /v1/cart/:productId/accessories` → `{ accessories: string[] }` → `{ ok: true }`. No aplica a bundles (`bundle_has_no_accessories`).
 - `DELETE /v1/cart` body `{ productIds?: string[], bundleIds?: string[] }` → `{ ok: true }`. Acá los ids son strings (el `id` de la línea). En el POST masivo, `productIds` es `[{ id, accessories? }]`. 404 `item_not_in_cart` si ninguno está en el carrito. 400 `invalid_item_id` / `item_ids_required`.
@@ -166,3 +169,17 @@ Por store: `itemsTotal`, `deliveryCost`, `total`.
 `totals`: `{ days, itemsAmount, deliveryAmount, taxAmount, amount }` con `amount` = itemsAmount + deliveryAmount + taxAmount.  
 `deliveryCost` es el `basePrice` de la store en euros y solo si `acquisition.type` es `delivery`.  
 `tax` queda en `0`: no hay tasa configurada. Líneas no disponibles (`isAvailable: false`) no suman.
+
+---
+
+## Admin `/v1/admin`
+
+Sin JWT. Header `x-admin-key` = `ADMIN_API_KEY`. 401 `invalid_admin_api_key` o `admin_not_configured`.
+
+`providerId` es el userId del provider.
+
+- `PATCH /v1/admin/providers/:providerId/products/status` `{ status }` → todos los productos de ese provider. `status`: `available | rented | in_review | inactive`. Respuesta `{ providerId, status, updated, bundlesUpdated }`.
+- `POST /v1/admin/providers/:providerId/products/approve` aprueba todos los `in_review` de ese provider. `{ providerId, approved, bundlesUpdated }`.
+- `POST /v1/admin/products/approve` `{ productIds }` aprueba esos productos. Tienen que estar `in_review`. 404 `products_not_found`, 400 `product_not_in_review`.
+
+Aprobar = `in_review` → `available`. Los bundles `available` o `in_review` del provider siguen el status de sus productos. Bundles `inactive` o `rented` no se tocan.
