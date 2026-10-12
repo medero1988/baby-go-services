@@ -1,0 +1,182 @@
+{
+  "info": {
+    "_postman_id": "f6a7b8c9-d0e1-2345-f012-567890123456",
+    "name": "Baby Go — Client Cart",
+    "description": "Carrito del cliente. Bearer JWT. Un carrito por usuario.\n\n**GET /v1/shopping-cart-count** → `{ count }`.\n`count` = líneas del carrito. Cada producto y cada bundle suma 1. Los productos que van dentro de un bundle no suman.\n\n**GET /v1/cart** → carrito agrupado por store. Sin carrito: `productsByStore: []`, `totals.amount: 0`.\n\n**POST /v1/cart** (200) crea o edita y devuelve el mismo JSON que el GET.\nUn ítem: `productId` o `bundleId`, con `accessories` solo en el producto.\nVarios: `productIds: [{ id, accessories? }]` y `bundleIds: string[]`.\nSolo entran `active`. Si uno falla, no se guarda nada. No hay stock por cantidad: disponible = `status === active`. Si la línea ya está, actualiza accesorios (solo producto).\n\n**PATCH /v1/cart** período (`start` + `end`) y/o handoff de una store (`storeId` + `acquisition` + `devolution`). Devuelve el carrito.\n\n**PUT /v1/cart/:productId/accessories** `{ accessories: string[] }` → `{ ok: true }`. No aplica a bundles (`bundle_has_no_accessories`).\n\n**DELETE /v1/cart** `{ productIds?: string[], bundleIds?: string[] }` → `{ ok: true }`.\nAcá `productIds` y `bundleIds` son arrays de string: el `id` de la línea. En el POST masivo, `productIds` es `[{ id, accessories? }]`.\n404 `item_not_in_cart` si ninguno está en el carrito. 400 `invalid_item_id` si un id no es ObjectId. 400 `item_ids_required` si ambas listas vienen vacías.\n\nFechas de entrada: `YYYY-MM-DD` o `DD/MM/YYYY`. En la respuesta van `DD/MM/YYYY`.\n`days` es inclusivo (30/06–02/07 = 3).\nLínea: `kind` `product` | `bundle`, `price.amount` por día, `lineTotal.amount` = precio × días. El bundle usa su propio precio. `products[]` del bundle solo lista los miembros (`id`, `title`, `category`).\nPor store: `itemsTotal`, `deliveryCost`, `total`, cada uno `{ currency: \"EUR\", amount }`.\n`totals`: `{ currency, days, itemsAmount, deliveryAmount, taxAmount, amount }`.\n`deliveryCost` = `basePrice` de la store en euros, solo si `acquisition.type` es `delivery`.\n`tax.amount` = 0. Una línea con `isAvailable: false` no suma.\nHandoff: `delivery` | `customer_pickup` (también se acepta `customer-pickup`). `delivery` exige `address`. `time` = minutos desde las 00:00 (825 = 13:45).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "bundleId", "value": "" },
+    { "key": "storeId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "1. Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/shopping-cart-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "shopping-cart-count"]
+            },
+            "description": "JWT. `{ count }` = líneas del carrito. Cada producto y cada bundle suma 1. Los productos dentro de un bundle no suman. Sin carrito: `{ count: 0 }`."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "JWT. Misma forma que el POST y el PATCH.\n`productsByStore[]`: storeId, storeName, acquisition, devolution, products, itemsTotal, deliveryCost, total.\nCada línea: kind (`product`|`bundle`), id, title, price, lineTotal, media, accessories, selectedAccessories, isAvailable. El bundle suma `products: [{ id, title, category }]`.\n`totals`: days, itemsAmount, deliveryAmount, taxAmount, amount. Los montos de línea y de store son `{ currency, amount }`. Los de `totals` son números.\n`price.amount` es por día. `lineTotal.amount` = precio × days. Fechas de respuesta `DD/MM/YYYY`."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Add product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"accessories\": [\"rain-coat\"],\n  \"city\": \"Amsterdam\",\n  \"country\": \"NL\",\n  \"rentalPeriod\": {\n    \"start\": \"30/06/2026\",\n    \"end\": \"02/07/2026\"\n  },\n  \"acquisition\": {\n    \"type\": \"delivery\",\n    \"address\": \"MEININGER Hotel Amsterdam\",\n    \"time\": 825\n  },\n  \"devolution\": {\n    \"type\": \"customer_pickup\",\n    \"time\": 825\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "Un producto `active`. Body: `productId`, `accessories?`, `city`, `country`, `rentalPeriod`, `acquisition`, `devolution`. Respuesta 200 = GET cart. `time` 825 = 13:45. Para un bundle usar 3b. Para varios, 3c."
+          },
+          "response": []
+        },
+        {
+          "name": "3b. Add bundle",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bundleId\": \"{{bundleId}}\",\n  \"city\": \"Amsterdam\",\n  \"country\": \"NL\",\n  \"rentalPeriod\": {\n    \"start\": \"30/06/2026\",\n    \"end\": \"02/07/2026\"\n  },\n  \"acquisition\": {\n    \"type\": \"delivery\",\n    \"address\": \"MEININGER Hotel Amsterdam\",\n    \"time\": 825\n  },\n  \"devolution\": {\n    \"type\": \"customer_pickup\",\n    \"time\": 825\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "Un producto o un bundle. Para varios, usar 3c."
+          },
+          "response": []
+        },
+        {
+          "name": "3c. Add several items",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Amsterdam\",\n  \"country\": \"NL\",\n  \"rentalPeriod\": {\n    \"start\": \"30/06/2026\",\n    \"end\": \"02/07/2026\"\n  },\n  \"acquisition\": {\n    \"type\": \"delivery\",\n    \"address\": \"MEININGER Hotel Amsterdam\",\n    \"time\": 825\n  },\n  \"devolution\": {\n    \"type\": \"customer_pickup\",\n    \"time\": 825\n  },\n  \"productIds\": [\n    {\n      \"id\": \"{{productId}}\",\n      \"accessories\": [\"rain-coat\"]\n    }\n  ],\n  \"bundleIds\": [\"{{bundleId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "Una petición agrega o actualiza varias líneas. Cada ítem tiene que estar `active`. Si uno falla, no se guarda ninguno. No hay stock por cantidad: disponible = status active."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Update rental period",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"25/06/2026\",\n  \"end\": \"28/06/2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "Reemplaza el período de todo el carrito. Respuesta = GET cart."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Update acquisition and return",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{storeId}}\",\n  \"acquisition\": {\n    \"type\": \"delivery\",\n    \"address\": \"MEININGER Hotel Amsterdam\",\n    \"time\": 825\n  },\n  \"devolution\": {\n    \"type\": \"customer_pickup\",\n    \"time\": 825\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "Handoff de una store que ya está en el carrito. 404 `store_not_in_cart`."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Update accessories",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessories\": [\"rain-coat\", \"cup-holder\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart/{{productId}}/accessories",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart", "{{productId}}", "accessories"]
+            },
+            "description": "`{ ok: true }`. 400 `invalid_accessories` si el producto no los tiene."
+          },
+          "response": []
+        },
+        {
+          "name": "7. Remove items",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productIds\": [\"{{productId}}\"],\n  \"bundleIds\": [\"{{bundleId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "cart"]
+            },
+            "description": "`{ ok: true }`. `productIds` y `bundleIds` aceptan el `id` de la línea, sea producto o bundle. 404 `item_not_in_cart` si ninguno está en el carrito. Si una store queda sin líneas, sale del carrito."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

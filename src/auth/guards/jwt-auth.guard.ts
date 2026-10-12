@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator';
+import {
+  IS_PUBLIC_KEY,
+  REQUIRE_AUTH_KEY,
+} from '../../common/decorators/public.decorator';
 import { EnvService } from '../../config/env.service';
 import type { AuthUser } from '../auth-user';
 import { AuthService } from '../auth.service';
@@ -38,6 +41,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
     if (isPublic) {
       return true;
+    }
+
+    const requireAuth = this.reflector.getAllAndOverride<boolean>(
+      REQUIRE_AUTH_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (requireAuth) {
+      return super.canActivate(context) as Promise<boolean>;
     }
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();

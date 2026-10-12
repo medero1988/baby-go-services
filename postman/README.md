@@ -1,6 +1,6 @@
 # Baby Go — Postman (contrato para front)
 
-Importá las 7 collections + el environment `Baby-Go.postman_environment.json`.
+Importá las 8 collections + el environment `Baby-Go.postman_environment.json`.
 
 **Base URL:** `{{baseUrl}}` = `http://localhost:3000/api`  
 Rutas reales: `http://localhost:3000/api/v1/...`
@@ -30,6 +30,7 @@ Hoy **no hay `role` en el usuario**. Provider vs client se infiere por el flujo 
 | `baby-go-provider-bundles.postman_collection.json` | provider — combos | `/v1/bundles` |
 | `baby-go-payments.postman_collection.json` | client — Stripe | `/v1/payments` |
 | `baby-go-client-search.postman_collection.json` | client — catálogo | `/v1/search` |
+| `baby-go-client-cart.postman_collection.json` | client — carrito | `/v1/cart` |
 
 Orden de montaje provider: **Auth → Store → Products → Bundles**. Settings GET es público (picker de país/tel).
 
@@ -141,3 +142,24 @@ Body opcional. Vacío → productos y combos `active` de todas las stores.
 - Cada ítem trae `store.delivery` y `store.customerPickup` (`timeRanges`, `days`).
 
 Respuesta: `{ data, total, nextPage }` (`nextPage` es `{ offset, limit }` o `null`). `data[].kind`: `product` | `bundle`.
+
+---
+
+## Cart (cliente) `/v1/cart`
+
+Bearer JWT. Un carrito por usuario.
+
+- `GET /v1/shopping-cart-count` → `{ count }`. Cada producto y cada bundle suma 1. Los productos que van dentro de un bundle no suman. Sin carrito: `0`.
+- `GET /v1/cart` → carrito. Vacío: `productsByStore: []`, `totals.amount: 0`.
+- `POST /v1/cart` crea o edita el carrito. Un ítem (`productId` o `bundleId`) o varios: `productIds: [{ id, accessories? }]` y `bundleIds: string[]`. Solo entran productos y bundles `active`. Si el bundle incluye un producto que no está `active`, responde `bundle_not_available` y no guarda nada. Si la línea ya está, actualiza accesorios (solo producto). No hay stock numérico por producto.
+- `PATCH /v1/cart` actualiza el período (`start` + `end`) y/o el handoff de una store (`storeId` + `acquisition` + `devolution`).
+- `PUT /v1/cart/:productId/accessories` → `{ accessories: string[] }` → `{ ok: true }`. No aplica a bundles (`bundle_has_no_accessories`).
+- `DELETE /v1/cart` body `{ productIds?: string[], bundleIds?: string[] }` → `{ ok: true }`. Acá los ids son strings (el `id` de la línea). En el POST masivo, `productIds` es `[{ id, accessories? }]`. 404 `item_not_in_cart` si ninguno está en el carrito. 400 `invalid_item_id` / `item_ids_required`.
+
+Fechas: `YYYY-MM-DD` o `DD/MM/YYYY`. En la respuesta van `DD/MM/YYYY`.  
+`days` es inclusivo (30/06–02/07 = 3).  
+Cada línea: `kind` `product` | `bundle`, `price.amount` por día, `lineTotal` = precio × días. El bundle usa su propio precio, no la suma de sus productos.  
+Por store: `itemsTotal`, `deliveryCost`, `total`.  
+`totals`: `{ days, itemsAmount, deliveryAmount, taxAmount, amount }` con `amount` = itemsAmount + deliveryAmount + taxAmount.  
+`deliveryCost` es el `basePrice` de la store en euros y solo si `acquisition.type` es `delivery`.  
+`tax` queda en `0`: no hay tasa configurada. Líneas no disponibles (`isAvailable: false`) no suman.
