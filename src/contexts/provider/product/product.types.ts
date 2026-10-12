@@ -12,7 +12,19 @@ export type ProductPrice = {
 /** Atributos libres que envía el front (varían por categoría). */
 export type ProductAttributes = Record<string, unknown>;
 
-export type ProductStatus = 'draft' | 'active' | 'inactive';
+/**
+ * - `in_review`: recién creado, oculto a clientes; un admin lo pasa a `available` (DB).
+ * - `available`: reservable, visible en la búsqueda de clientes.
+ * - `rented`: alquilado (lo setea el flujo de órdenes).
+ * - `inactive`: pausado por el provider, oculto a clientes.
+ */
+export type ProductStatus = 'available' | 'rented' | 'in_review' | 'inactive';
+
+/** Únicos estados que el provider puede setear vía PATCH (y desde los que puede cambiar). */
+export type ProviderSettableProductStatus = Extract<
+  ProductStatus,
+  'available' | 'inactive'
+>;
 
 export type ProductResponse = {
   id: string;

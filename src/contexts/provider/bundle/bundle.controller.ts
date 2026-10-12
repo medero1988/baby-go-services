@@ -66,14 +66,6 @@ export class BundleController {
     );
   }
 
-  @Post('/:id/save')
-  save(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.bundleService.save(
-      this.parseId(id, 'invalid_bundle_id'),
-      user.id,
-    );
-  }
-
   @Delete('/:id')
   @HttpCode(200)
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {

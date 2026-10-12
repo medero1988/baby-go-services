@@ -12,11 +12,12 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { UpdateProductPriceDto } from '../../product/dto/update-product.dto';
-import { BundleStatus } from '../bundle.types';
+import {
+  PROVIDER_SETTABLE_PRODUCT_STATUSES,
+  UpdateProductPriceDto,
+} from '../../product/dto/update-product.dto';
+import { ProviderSettableProductStatus } from '../../product/product.types';
 import { MAX_BUNDLE_PRODUCTS, MIN_BUNDLE_PRODUCTS } from './create-bundle.dto';
-
-const BUNDLE_STATUSES: BundleStatus[] = ['draft', 'active', 'inactive'];
 
 export class UpdateBundleDto {
   @IsOptional()
@@ -45,6 +46,7 @@ export class UpdateBundleDto {
   price?: UpdateProductPriceDto;
 
   @IsOptional()
-  @IsIn(BUNDLE_STATUSES)
-  status?: BundleStatus;
+  /** Solo `available` ↔ `inactive`, igual que productos. */
+  @IsIn(PROVIDER_SETTABLE_PRODUCT_STATUSES)
+  status?: ProviderSettableProductStatus;
 }

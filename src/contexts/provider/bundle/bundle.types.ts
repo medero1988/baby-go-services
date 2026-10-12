@@ -4,6 +4,7 @@ import {
   ProductStatus,
 } from '../product/product.types';
 
+/** Mismos estados y reglas que los productos (ver `ProductStatus`). */
 export type BundleStatus = ProductStatus;
 
 export type BundleResponse = {

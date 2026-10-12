@@ -72,8 +72,8 @@ export class Product {
   @Prop({
     type: String,
     required: true,
-    enum: ['draft', 'active', 'inactive'],
-    default: 'draft',
+    enum: ['available', 'rented', 'in_review', 'inactive'],
+    default: 'in_review',
   })
   status: ProductStatus;
 }

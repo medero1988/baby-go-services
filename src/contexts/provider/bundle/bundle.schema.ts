@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { ProductPrice } from '../product/product.types';
+import { PRODUCT_STATUSES } from '../product/dto/list-products-query.dto';
 import { BundleStatus } from './bundle.types';
 
 export type BundleDocument = Bundle & Document;
@@ -43,8 +44,8 @@ export class Bundle {
   @Prop({
     type: String,
     required: true,
-    enum: ['draft', 'active', 'inactive'],
-    default: 'draft',
+    enum: PRODUCT_STATUSES,
+    default: 'in_review',
   })
   status: BundleStatus;
 }
