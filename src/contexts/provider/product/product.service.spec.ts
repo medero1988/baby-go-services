@@ -1,4 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Types } from 'mongoose';
 import { ProductService } from './product.service';
 import { ProductStatus } from './product.types';
@@ -192,6 +196,140 @@ describe('ProductService', () => {
       expect(productModel.deleteMany).toHaveBeenCalledWith({
         _id: { $in: [doc._id] },
       });
+    });
+  });
+
+  describe('remove', () => {
+    function buildRemove(
+      doc: ReturnType<typeof makeDoc> | null,
+      opts: { deletedCount?: number; afterDelete?: unknown } = {},
+    ) {
+      if (doc) {
+        doc.medias = [
+          { url: 'https://cdn/a.png', publicId: 'products/a' },
+        ] as never;
+      }
+      const productModel = {
+        findById: jest
+          .fn()
+          .mockReturnValueOnce({ exec: () => Promise.resolve(doc) })
+          .mockReturnValue({
+            lean: () => ({
+              exec: () => Promise.resolve(opts.afterDelete ?? null),
+            }),
+          }),
+        deleteOne: jest.fn(() => ({
+          exec: () => Promise.resolve({ deletedCount: opts.deletedCount ?? 1 }),
+        })),
+      };
+      const bundleModel = {
+        updateMany: jest.fn(() => ({ exec: () => Promise.resolve() })),
+        deleteMany: jest.fn(() => ({ exec: () => Promise.resolve() })),
+      };
+      const storage = {
+        delete: jest.fn().mockResolvedValue(undefined),
+        imageUrls: jest.fn(() => ({})),
+      };
+      const service = new ProductService(
+        productModel as never,
+        bundleModel as never,
+        {} as never,
+        storage as never,
+      );
+      return { service, productModel, bundleModel, storage };
+    }
+
+    async function expectRented(promise: Promise<unknown>) {
+      const err = await promise.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect(err).toBeInstanceOf(ConflictException);
+      expect((err as ConflictException).getStatus()).toBe(409);
+      expect((err as ConflictException).getResponse()).toEqual({
+        error: 'product_rented',
+        message: 'A rented product cannot be deleted',
+      });
+    }
+
+    it('409 product_rented for a rented product and deletes nothing', async () => {
+      const { service, productModel, bundleModel, storage } = buildRemove(
+        makeDoc('rented'),
+      );
+
+      await expectRented(service.remove(PRODUCT_ID, USER_ID));
+
+      expect(storage.delete).not.toHaveBeenCalled();
+      expect(bundleModel.updateMany).not.toHaveBeenCalled();
+      expect(bundleModel.deleteMany).not.toHaveBeenCalled();
+      expect(productModel.deleteOne).not.toHaveBeenCalled();
+    });
+
+    it('404 product_not_found (not 409) for another provider rented product', async () => {
+      const doc = makeDoc('rented');
+      doc.userId = 'other-user';
+      const { service, productModel, bundleModel, storage } = buildRemove(doc);
+
+      const err = await service.remove(PRODUCT_ID, USER_ID).then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect(err).toBeInstanceOf(NotFoundException);
+      expect((err as NotFoundException).getResponse()).toEqual({
+        error: 'product_not_found',
+      });
+      expect(storage.delete).not.toHaveBeenCalled();
+      expect(bundleModel.updateMany).not.toHaveBeenCalled();
+      expect(productModel.deleteOne).not.toHaveBeenCalled();
+    });
+
+    it.each<ProductStatus>(['available', 'inactive', 'in_review'])(
+      'deletes a %s product, its photos and detaches it from bundles',
+      async (status) => {
+        const doc = makeDoc(status);
+        const { service, productModel, bundleModel, storage } =
+          buildRemove(doc);
+
+        await expect(service.remove(PRODUCT_ID, USER_ID)).resolves.toEqual({
+          success: true,
+        });
+
+        expect(productModel.deleteOne).toHaveBeenCalledWith({
+          _id: doc._id,
+          status: { $ne: 'rented' },
+        });
+        expect(bundleModel.updateMany).toHaveBeenCalled();
+        expect(bundleModel.deleteMany).toHaveBeenCalled();
+        expect(storage.delete).toHaveBeenCalledWith({
+          url: 'https://cdn/a.png',
+          publicId: 'products/a',
+        });
+      },
+    );
+
+    it('409 and no side effects when it became rented before the conditional delete', async () => {
+      const { service, bundleModel, storage } = buildRemove(
+        makeDoc('available'),
+        { deletedCount: 0, afterDelete: { status: 'rented' } },
+      );
+
+      await expectRented(service.remove(PRODUCT_ID, USER_ID));
+
+      expect(storage.delete).not.toHaveBeenCalled();
+      expect(bundleModel.updateMany).not.toHaveBeenCalled();
+      expect(bundleModel.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('404 when it was deleted concurrently before the conditional delete', async () => {
+      const { service, storage } = buildRemove(makeDoc('available'), {
+        deletedCount: 0,
+        afterDelete: null,
+      });
+
+      await expect(service.remove(PRODUCT_ID, USER_ID)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(storage.delete).not.toHaveBeenCalled();
     });
   });
 
