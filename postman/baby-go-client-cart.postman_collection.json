@@ -147,7 +147,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"accessories\": [\"rain-coat\", \"cup-holder\"]\n}"
+              "raw": "{\n  \"accessories\": [\"rain-coat\", \"car-seat\"]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/v1/cart/{{productId}}/accessories",
