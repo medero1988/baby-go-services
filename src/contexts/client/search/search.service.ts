@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { toCategorySlug } from '../../../common/utils/category-slug';
 import { StorageService } from '../../../shared/storage/storage.service';
 import { Bundle, BundleDocument } from '../../provider/bundle/bundle.schema';
 import {
@@ -365,7 +366,7 @@ function normalizeCategories(
 ): CategoryFilter[] {
   return (categories ?? [])
     .map((category) => ({
-      name: category.name.trim().toLowerCase(),
+      name: toCategorySlug(category.name),
       types: (category.types ?? [])
         .map((value) => value.trim())
         .filter(Boolean),
@@ -400,9 +401,7 @@ function bundleMatches(
   categories: CategoryFilter[],
 ): boolean {
   if (!categories.length) return true;
-  const names = new Set(
-    (bundle.category ?? []).map((value) => value.toLowerCase()),
-  );
+  const names = new Set((bundle.category ?? []).map(toCategorySlug));
   return categories.some((category) => {
     if (!names.has(category.name)) return false;
     if (!category.types.length && !category.accessories.length) return true;

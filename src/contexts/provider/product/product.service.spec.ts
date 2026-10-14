@@ -70,7 +70,7 @@ async function expectError(promise: Promise<unknown>, error: string) {
 
 describe('ProductService', () => {
   describe('create', () => {
-    it('creates products in_review with a lower-cased category', async () => {
+    it('creates products in_review with a kebab-case category', async () => {
       const { service, productModel } = build();
       const res = await service.create(USER_ID, {
         category: ' BabyCarrier ',
@@ -81,11 +81,11 @@ describe('ProductService', () => {
       expect(productModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'in_review',
-          category: 'babycarrier',
+          category: 'baby-carrier',
         }),
       );
       expect(res.status).toBe('in_review');
-      expect(res.category).toBe('babycarrier');
+      expect(res.category).toBe('baby-carrier');
     });
   });
 
