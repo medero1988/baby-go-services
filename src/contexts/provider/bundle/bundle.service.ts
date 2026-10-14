@@ -83,8 +83,8 @@ export class BundleService {
     if (query.status) {
       filter.status = query.status;
     }
-    if (query.category?.trim()) {
-      filter.category = query.category.trim().toLowerCase();
+    if (query.category) {
+      filter.category = query.category;
     }
 
     const [bundles, total] = await Promise.all([

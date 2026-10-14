@@ -12,7 +12,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 import {
+  PRODUCT_CATEGORIES,
   ProductAttributes,
+  ProductCategory,
   ProviderSettableProductStatus,
 } from '../product.types';
 
@@ -51,10 +53,8 @@ export class UpdateProductPriceDto {
  */
 export class UpdateProductDto {
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(80)
-  category?: string;
+  @IsIn(PRODUCT_CATEGORIES)
+  category?: ProductCategory;
 
   @IsOptional()
   @IsString()

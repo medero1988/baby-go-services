@@ -1,6 +1,10 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { ProductStatus } from '../product.types';
+import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  PRODUCT_CATEGORIES,
+  ProductCategory,
+  ProductStatus,
+} from '../product.types';
 
 export const PRODUCT_STATUSES: ProductStatus[] = [
   'available',
@@ -15,8 +19,8 @@ export class ListProductsQueryDto {
   status?: ProductStatus;
 
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsIn(PRODUCT_CATEGORIES)
+  category?: ProductCategory;
 
   @IsOptional()
   @Type(() => Number)
