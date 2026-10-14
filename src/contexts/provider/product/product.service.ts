@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { toCategorySlug } from '../../../common/utils/category-slug';
 import { StorageService } from '../../../shared/storage/storage.service';
 import { Bundle, BundleDocument } from '../bundle/bundle.schema';
 import { StoreService } from '../store/store.service';
@@ -56,7 +55,7 @@ export class ProductService {
     const product = await this.productModel.create({
       userId,
       storeId,
-      category: toCategorySlug(dto.category),
+      category: dto.category,
       title,
       description: dto.description.trim(),
       price: normalizePrice(dto.price),
@@ -90,7 +89,7 @@ export class ProductService {
     }
 
     if (dto.category !== undefined) {
-      product.category = toCategorySlug(dto.category);
+      product.category = dto.category;
     }
 
     if (dto.title !== undefined) {
@@ -180,8 +179,8 @@ export class ProductService {
     if (query.status) {
       filter.status = query.status;
     }
-    if (query.category?.trim()) {
-      filter.category = toCategorySlug(query.category);
+    if (query.category) {
+      filter.category = query.category;
     }
 
     const [products, total] = await Promise.all([

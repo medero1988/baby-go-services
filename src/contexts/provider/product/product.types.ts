@@ -9,6 +9,18 @@ export type ProductPrice = {
   activeUntil?: string;
 };
 
+/** Categorías de producto válidas (kebab-case, compartidas con el front). */
+export const PRODUCT_CATEGORIES = [
+  'stroller',
+  'baby-carrier',
+  'car-seat',
+  'crib',
+  'bike',
+  'toy',
+] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
 /** Atributos libres que envía el front (varían por categoría). */
 export type ProductAttributes = Record<string, unknown>;
 

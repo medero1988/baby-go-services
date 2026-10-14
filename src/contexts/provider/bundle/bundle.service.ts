@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { toCategorySlug } from '../../../common/utils/category-slug';
 import {
   ProductService,
   assertProviderStatusTransition,
@@ -84,8 +83,8 @@ export class BundleService {
     if (query.status) {
       filter.status = query.status;
     }
-    if (query.category?.trim()) {
-      filter.category = toCategorySlug(query.category);
+    if (query.category) {
+      filter.category = query.category;
     }
 
     const [bundles, total] = await Promise.all([
@@ -271,7 +270,7 @@ function buildBundleCategories(products: ProductDocument[]): string[] {
   const categories: string[] = [BUNDLE_CATEGORY];
   const seen = new Set(categories);
   for (const product of products) {
-    const category = product.category && toCategorySlug(product.category);
+    const category = product.category?.trim().toLowerCase();
     if (!category || seen.has(category)) continue;
     seen.add(category);
     categories.push(category);

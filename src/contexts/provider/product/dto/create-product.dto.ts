@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -10,7 +11,11 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { ProductAttributes } from '../product.types';
+import {
+  PRODUCT_CATEGORIES,
+  ProductAttributes,
+  ProductCategory,
+} from '../product.types';
 
 export class ProductPriceDto {
   @IsNumber()
@@ -39,10 +44,8 @@ export class ProductPriceDto {
  * `attributes` es un objeto libre: el front manda lo que corresponda a la categoría.
  */
 export class CreateProductDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(80)
-  category: string;
+  @IsIn(PRODUCT_CATEGORIES)
+  category: ProductCategory;
 
   @IsString()
   @IsNotEmpty()

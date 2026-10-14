@@ -70,10 +70,10 @@ async function expectError(promise: Promise<unknown>, error: string) {
 
 describe('ProductService', () => {
   describe('create', () => {
-    it('creates products in_review with a kebab-case category', async () => {
+    it('creates products in_review with the given category', async () => {
       const { service, productModel } = build();
       const res = await service.create(USER_ID, {
-        category: ' BabyCarrier ',
+        category: 'baby-carrier',
         title: 'Ergobaby',
         description: 'Omni',
         price: { list: 5 },
