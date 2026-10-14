@@ -88,6 +88,8 @@ Create (`in_review`; un admin lo pasa a `available` con `/v1/admin/.../approve`)
 
 List: `GET /v1/products?page=1&limit=20&status=&category=` → `{ items, page, limit, total, totalPages }`. Default page=1, limit=20, máx 100.
 
+`DELETE /v1/products/:id` borra el producto, sus fotos del bucket y lo saca de sus bundles (borra bundles con <2 productos). Respuesta `{ success: true }`. 404 `product_not_found`. Si está `rented` → 409 `{ error: 'product_rented', message: 'A rented product cannot be deleted' }` y no se borra nada.
+
 `DELETE /v1/products` borra todos los productos del provider, sus fotos del bucket y todos sus bundles. Respuesta `{ success: true, deleted }`.
 
 PATCH parcial: `title`, `description`, `category`, `price` (merge; `offer: null` saca oferta), `attributes` (merge; key `null` borra), `status`. Cambiar título, descripción, categoría, atributos o fotos (`POST`/`PUT`/`DELETE` medias) devuelve el producto a `in_review`. El precio no. Los bundles `available` que lo incluyen también pasan a `in_review`.
