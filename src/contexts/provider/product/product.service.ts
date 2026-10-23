@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -415,14 +416,35 @@ export class ProductService {
   /**
    * DELETE /products/:id — borra producto, todas sus medias del bucket
    * y lo saca de bundles del provider (borra bundles que queden con <2 productos).
+   * Un producto `rented` no se puede borrar (409 `product_rented`) y no se toca nada.
+   *
+   * El borrado de la fila es condicional (`status != rented`) y va primero: si el
+   * producto pasó a `rented` entre la lectura y el borrado, no se borra nada.
+   * Bundles y fotos del bucket se limpian solo después de borrar la fila.
    */
   async remove(productId: string, userId: string): Promise<{ success: true }> {
     const product = await this.requireOwnedProduct(productId, userId);
+    if (product.status === 'rented') {
+      throw productRentedError();
+    }
 
-    await this.deleteAllMediasFromBucket(product.medias ?? []);
+    const { deletedCount } = await this.productModel
+      .deleteOne({ _id: product._id, status: { $ne: 'rented' } })
+      .exec();
+    if (!deletedCount) {
+      // Cambió entre la lectura y el borrado: o pasó a `rented` o ya no existe.
+      const current = await this.productModel
+        .findById(product._id)
+        .lean()
+        .exec();
+      if (!current) {
+        throw new NotFoundException({ error: 'product_not_found' });
+      }
+      throw productRentedError();
+    }
 
     await this.detachProductFromBundles(userId, productId);
-    await this.productModel.deleteOne({ _id: product._id }).exec();
+    await this.deleteAllMediasFromBucket(product.medias ?? []);
 
     return { success: true };
   }
@@ -611,6 +633,11 @@ function sniffImageExtension(buffer?: Buffer): string | null {
   return null;
 }
 
+function productRentedError(): ConflictException {
+  return new ConflictException({
+    error: 'product_rented',
+    message: 'A rented product cannot be deleted',
+  });
 /** Valida la forma del body de reorder: array de ObjectIds sin duplicados. */
 function parseMediaOrder(value: unknown): string[] {
   if (!Array.isArray(value) || !value.every((v) => typeof v === 'string')) {
