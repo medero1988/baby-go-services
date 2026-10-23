@@ -47,11 +47,11 @@
               "label": "Accesorios",
               "type": "multi",
               "options": [
-                { "value": "bassinet", "label": "Capazo" },
-                { "value": "rain-coat", "label": "Plástico de lluvia" },
                 { "value": "chair", "label": "Silla extra" },
-                { "value": "cup-holder", "label": "Portavasos" },
-                { "value": "mosquito-net", "label": "Mosquitero" }
+                { "value": "bassinet", "label": "Capazo" },
+                { "value": "car-seat", "label": "Silla de auto" },
+                { "value": "rider-board", "label": "Patinete para hermano" },
+                { "value": "rain-coat", "label": "Plástico de lluvia" }
               ]
             }
           ]

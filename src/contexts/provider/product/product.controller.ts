@@ -21,6 +21,7 @@ import { ROUTES } from '../../../common/constants/api-routes.constants';
 import type { AuthUser } from '../../../auth/auth-user';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
+import { ReorderProductMediasDto } from './dto/reorder-product-medias.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
 
@@ -101,6 +102,23 @@ export class ProductController {
       this.parseId(id, 'invalid_product_id'),
       user.id,
       pickMediaFile(files),
+    );
+  }
+
+  /**
+   * Reordenar la galería: `{ mediaIds }` (índice 0 = foto principal).
+   * Declarada antes de `PUT /:id/medias/:mediaId` para que `order` no se tome como mediaId.
+   */
+  @Put('/:id/medias/order')
+  reorderMedias(
+    @Param('id') id: string,
+    @Body() body: ReorderProductMediasDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.productService.reorderMedias(
+      this.parseId(id, 'invalid_product_id'),
+      user.id,
+      body?.mediaIds,
     );
   }
 

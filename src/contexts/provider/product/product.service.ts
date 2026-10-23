@@ -356,6 +356,41 @@ export class ProductService {
   }
 
   /**
+   * PUT /products/:id/medias/order — reordena la galería.
+   * `mediaIds` debe ser una permutación exacta de las medias actuales.
+   * Índice 0 = foto principal (head), la que se usa como thumbnail en listados.
+   * No vuelve a `in_review`: no cambia el contenido, solo el orden de fotos ya revisadas.
+   */
+  async reorderMedias(
+    productId: string,
+    userId: string,
+    mediaIds: unknown,
+  ): Promise<ProductMediaResponse[]> {
+    const ids = parseMediaOrder(mediaIds);
+    const product = await this.requireOwnedProduct(productId, userId);
+
+    const byId = new Map(
+      (product.medias ?? []).map((m) => [String(m._id), m] as const),
+    );
+    if (ids.length !== byId.size || ids.some((id) => !byId.has(id))) {
+      throw new BadRequestException({
+        error: 'invalid_media_order',
+        message: '`mediaIds` must contain every current media id exactly once',
+      });
+    }
+
+    const reordered = ids.map((id) => byId.get(id) as ProductMedia);
+    const changed = reordered.some((m, i) => m !== product.medias[i]);
+    if (changed) {
+      product.medias = reordered;
+      product.markModified('medias');
+      await product.save();
+    }
+
+    return product.medias.map((m) => this.toMediaResponse(m));
+  }
+
+  /**
    * DELETE /products — borra todos los productos del provider, sus fotos
    * y todos sus bundles (quedarían sin productos).
    */
@@ -603,6 +638,25 @@ function productRentedError(): ConflictException {
     error: 'product_rented',
     message: 'A rented product cannot be deleted',
   });
+/** Valida la forma del body de reorder: array de ObjectIds sin duplicados. */
+function parseMediaOrder(value: unknown): string[] {
+  if (!Array.isArray(value) || !value.every((v) => typeof v === 'string')) {
+    throw new BadRequestException({
+      error: 'invalid_media_order',
+      message: '`mediaIds` must be an array of strings',
+    });
+  }
+  const ids = value.map((v: string) => v.trim());
+  if (ids.some((id) => !Types.ObjectId.isValid(id))) {
+    throw new BadRequestException({ error: 'invalid_media_id' });
+  }
+  if (new Set(ids).size !== ids.length) {
+    throw new BadRequestException({
+      error: 'invalid_media_order',
+      message: '`mediaIds` must not contain duplicates',
+    });
+  }
+  return ids;
 }
 
 function escapeRegex(s: string): string {
